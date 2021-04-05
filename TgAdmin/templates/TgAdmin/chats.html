@@ -1,0 +1,60 @@
+{% extends 'adminlte/base.html' %}
+
+{% block title %}
+    Чаты
+{% endblock title %}
+
+{% block content %}
+<div class="row">
+    <div class="col-xs-12">
+        <div class="box">
+            <div class="box-header">
+                <h3 class="box-title">Чаты</h3>
+            </div>
+            <div class="box-body">
+                <div class="dataTables_wrapper form-inline dt-bootstrap">
+                    <div class="row">
+                        <div class="col-sm-6"></div>
+                        <div class="col-sm-6"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <table class="table table-bordered table-hover dataTable" role="grid">
+                                <thead>
+                                    <tr role="grid">
+                                        <th class="sorting_asc">Id чата</th>
+                                        <th class="sorting">Название</th>
+                                        <th class="sorting">Url</th>
+                                        <th class="sorting">Язык</th>
+                                        <th class="sorting">Url чата</th>
+                                        <th class="sorting">Настройки</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for chat in object_list %}
+                                <tr>
+                                    <td>{{ chat.chat_id }}</td>
+                                    <td>{{ chat.name }}</td>
+                                    <td>{{ chat.get_url_link_display }}</td>
+                                    <td>{{ chat.get_language_display }}</td>
+                                    {% if chat.url_chat %}
+                                        <td>{{ chat.url_chat }}</td>
+                                    {% else %}
+                                        <td></td>
+                                    {% endif %}
+                                    <td>
+                                        <a href="{% url 'chat_edit' chat.pk %}" class="btn btn-social-icon"><i class="fa fa-edit"></i></a>
+                                        <a href="{% url 'chat_delete' chat.pk %}" class="btn btn-social-icon"><i class="fa fa-close"></i></a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
