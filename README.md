@@ -11,16 +11,16 @@ git clone https://github.com/dedalus-3/telegram-django-admin.git
 ```commandline
 python -m venv venv
 ```
-2. ####Activate virtual environment.
-3. ####Install packages.
+2. #### Activate virtual environment.
+3. #### Install packages.
 ```commandline
 pip install -r requirenebts.txt
 ```
-4. ####Collect static files.
+4. #### Collect static files.
 ```commandline
 .\manage.py collectstatic
 ```
-5. ####In the file ".env.dist" set the values and change to the extension ".env".
+5. #### In the file ".env.dist" set the values and change to the extension ".env".
 
 PostgreSQL database is selected by default. If you want to select a different database, then change the settings in the "settings.py" file.
 
