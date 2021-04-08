@@ -154,8 +154,9 @@ class Command(BaseCommand):
                             reply_markup=await create_inline_btn(message["new_chat_member"].get("id"), text_btn1,
                                                                  text_btn2), parse_mode='HTML')
                     else:
+                        image = await select_image()
                         await message.answer_photo(
-                            photo='http://linkbuilder.su/images/uploads/glossary/protokol_sajta.jpg',
+                            photo=f"http://{env.str('IP_DOMAIN')}{image.url}",
                             caption=f"{user_name_en(message)}\n{await select_text_en()}",
                             reply_markup=await create_inline_btn(message["new_chat_member"].get("id"), text_btn1,
                                                                  text_btn2),
@@ -169,8 +170,9 @@ class Command(BaseCommand):
                             reply_markup=await create_inline_btn(message["new_chat_member"].get("id"), text_btn1,
                                                                  text_btn2), parse_mode='HTML')
                     else:
+                        image = await select_image()
                         await message.answer_photo(
-                            photo='http://linkbuilder.su/images/uploads/glossary/protokol_sajta.jpg',
+                            photo=f"http://{env.str('IP_DOMAIN')}{image.url}",
                             caption=f"{user_name(message)}\n{await select_text()}",
                             reply_markup=await create_inline_btn(message["new_chat_member"].get("id"), text_btn1,
                                                                  text_btn2),

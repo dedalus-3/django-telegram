@@ -1,4 +1,4 @@
-# telegram-django-admin
+# django-telegram
 ## Description
 The project provides an administration panel for tracking statistics in telegram chats.
 Implemented a tech support bot and statistics on people who signed up for tech support.
