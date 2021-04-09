@@ -109,7 +109,7 @@ class Command(BaseCommand):
                 return Chat.objects.get(chat_id=chat_id)
             except ObjectDoesNotExist:
                 # TODO на этот счет сделать логирование и потом посмотреть, много ли он косячит
-                print('Администратор должен добавить чат в админ панель с помощью команды /add_group')
+                pass
 
         # TODO если они сломают бота, то придется добавить логику в NEW_CHAT_MEMBERS на счет того,
         #  что от кого прилетело сообщение, то есть админа и проверить new_chat_member на is_bot
@@ -129,7 +129,6 @@ class Command(BaseCommand):
 
         @dp.message_handler(content_types=types.ContentTypes.NEW_CHAT_MEMBERS)
         async def greeting_member(message: types.Message):
-            print(message)
             # TODO ПЕРЕД ТЕМ КАК ДЕПЛОИТЬ/ВО ВРЕМЯ, настроить изображение
             user_id = message['new_chat_member']['id']
             user_username = message['new_chat_member'].get('username')
@@ -143,8 +142,7 @@ class Command(BaseCommand):
                                       full_name=fullname(first_name, last_name),
                                       chat_id=chat)
                 except IntegrityError:
-                    # TODO здесь добавить логирование
-                    print('Пользователь уже есть в БД')
+                    pass
                 if chat.language == 'en':
                     text_btn1 = await select_btn1_en()
                     text_btn2 = await select_btn2_en()

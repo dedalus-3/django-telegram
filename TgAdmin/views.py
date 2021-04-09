@@ -1,3 +1,4 @@
+from django.template import RequestContext
 from environs import Env
 from telebot import TeleBot
 from telebot import apihelper
@@ -210,7 +211,6 @@ class UpdateMailingView(LoginRequiredMixin, UpdateView):
         return reverse('mailing')
 
     def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        print(request.POST)
         bot = TeleBot(token=env.str("BOT_TOKEN2"))
         if request.POST['id_user']:
             if Users.objects.filter(iduser=request.POST['id_user']):

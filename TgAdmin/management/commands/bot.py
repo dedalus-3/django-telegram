@@ -115,10 +115,8 @@ class Command(BaseCommand):
                 if users.filter(state='2'):
                     if users.filter(state='4'):
                         users_id_state_four = []
-                        print(users_id_state_four)
                         for user in users.filter('4'):
                             users_id_state_four.append(user.iduser)
-                        print(users_id_state_four)
                         await update_for_user(users_id_state_four, '4', is_banned=False)
                         user_state_four = users.filter(state='4')[0]
                         users_id_state_two = []
@@ -131,10 +129,8 @@ class Command(BaseCommand):
                             await message.answer(text='Введите команду "/support", чтобы задать вопрос')
                     else:
                         users_id_state_two = []
-                        print(users_id_state_two)
                         for user in users.filter(state='2'):
                             users_id_state_two.append(user.iduser)
-                        print(users_id_state_two)
                         await update_for_user(users_id_state_two, '2', state='4')
                         await message.answer(text='Выберите язык\n Choose language',
                                              reply_markup=await language_inline_btn())
@@ -150,22 +146,15 @@ class Command(BaseCommand):
                         await message.answer(text='Введите команду "/support", чтобы задать вопрос')
                 elif users.filter(state='1'):
                     if len(users.filter(state='1')) == 1:
-                        print('Зашел на бездействие, когда длина 1')
                         user = users.filter(state='1')[0]
                         # user = await get_user(message.from_user.id, '1')
-                        print(user)
                         try:
-                            print('Смог получить url')
-                            print(user.chat_id.url_chat)
                             url_chat = user.chat_id.url_chat
-                            print(url_chat)
-                            print('Получил url')
                             keyboard = await keyboard_state_1(url_chat)
                             await message.answer(text='Вы не ответили в чате, перейдите обратно в чат\n'
                                                       'You have not answered in the chat, go back to the chat',
                                                  reply_markup=keyboard)
                         except AttributeError:
-                            print('Не смог получить url')
                             await message.answer(text='Вы не ответили в чате, перейдите обратно в чат\n'
                                                       'You have not answered in the chat, go back to the chat')
                         except exceptions.BadRequest:
@@ -180,10 +169,7 @@ class Command(BaseCommand):
 
         @dp.callback_query_handler(lambda call: call.data.startswith('language'))
         async def choice_language(call: types.CallbackQuery):
-            print(call.data)
             _, language = call.data.split('|')
-            print(language)
-            print(call.from_user)
             users_id_state_four = []
             if language == 'en':
                 users = await get_users(call.from_user.id, '4')
@@ -267,7 +253,6 @@ class Command(BaseCommand):
                                                f"\n\n{message.text}\n"
                                                f"\nВы можете ответить, нажав кнопку ниже", reply_markup=keyboard)
                     await create_tds(id_message=a.message_id, id_user=id_user, text=message.text)
-                print(f"id_user: {id_user}, second_id: {second_id}")
                 if user.language == 'en':
                     await message.answer("You have sent a question to technical support!")
                 else:
