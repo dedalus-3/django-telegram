@@ -20,7 +20,7 @@ class Const:
 
     LINK = [
         ('tp', env.str("TG_SUPPORT_URL")),
-        ('sh', env.str("TG_SHOP_URL")),
+        # ('sh', env.str("TG_SHOP_URL")),
     ]
 
     LANGUAGE_SUPPORT = [
