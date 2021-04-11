@@ -22,6 +22,7 @@ django-adminlte2==0.4.3
 django-mdeditor==0.1.18
 django-solo==1.1.5
 environs==8.0.0
+gunicorn==20.1.0
 hiredis==2.0.0
 hyperlink==21.0.0
 idna==2.10
@@ -31,7 +32,7 @@ Markdown==3.3.4
 marshmallow==3.10.0
 multidict==5.1.0
 Pillow==8.1.2
-psycopg2==2.8.6
+psycopg2-binary==2.8.5
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycparser==2.20
@@ -45,7 +46,6 @@ six==1.15.0
 soupsieve==2.2
 sqlparse==0.4.1
 Twisted==21.2.0
-twisted-iocpsupport==1.0.1
 txaio==21.2.1
 typing-extensions==3.7.4.3
 urllib3==1.26.3

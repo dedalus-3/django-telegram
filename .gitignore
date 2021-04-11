@@ -16,6 +16,7 @@ eggs/
 .eggs/
 lib/
 lib64/
+!TgAdmin/templates/adminlte/lib/
 parts/
 sdist/
 var/
@@ -129,10 +130,21 @@ dmypy.json
 .pyre/
 .idea/*
 .env
+.env.prod.db
 
 /venv/
 
 /.idea/
 /uploads/
 /static/
+
+# temp file ignored
+/nginx/
+.dockerignore
+.env.prod.db
+.env.pod.db.dist
+docker-compose.prod.yml
+docker-compose.yml
+Dockerfile
+entrypoint.sh
 

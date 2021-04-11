@@ -1,0 +1,77 @@
+{% extends 'adminlte/lib/_main_sidebar.html' %}
+
+{% block user_panel %}
+<div class="user-panel">
+    <div class="pull-left image">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgUNaoFwOOa3sOnMoc8CVUJ65bhS822etxVQ&usqp=CAU" class="img-circle" alt="User Image">
+    </div>
+    <div class="pull-left info">
+        <p>{% firstof request.user.get_full_name request.user.username %}</p>
+        <a href="#">
+            <i class="fa fa-circle text-success"></i>
+            Online
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block nav_heading %}Навигация{% endblock %}
+
+{% block nav_links %}
+<li>
+    <a href="{% url 'home' %}">
+        <i class="fa fa-group"></i> <span>Пользователи</span>
+    </a>
+</li>
+<li>
+    <a href="{% url 'chats' %}">
+        <i class="fa fa-wechat"></i> <span>Чаты</span>
+    </a>
+</li>
+<li class="treeview">
+    <a href="">
+        <i class="fa fa-edit"></i>
+        <span>Данные</span>
+        <span class="pull-right-container">
+            <i class="fa fa-angle-left pull-right"></i>
+        </span>
+    </a>
+    <ul class="treeview-menu">
+        <li>
+            <a href="{% url 'text_create' %}">
+                <i class="fa fa-circle-o"></i> Текст
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'btn1_create' %}">
+                <i class="fa fa-circle-o"></i> Кнопка согласия
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'btn2_create' %}">
+                <i class="fa fa-circle-o"></i> Кнопка отклонения
+            </a>
+        </li>
+    </ul>
+</li>
+<li class="treeview">
+    <a href="">
+        <i class="fa fa-tty"></i> <span>Техподдержка</span>
+        <span class="pull-right-container">
+                            <i class="fa fa-angle-left pull-right"></i>
+                        </span>
+    </a>
+    <ul class="treeview-menu">
+        <li>
+            <a href="{% url 'edit_faq' %}">
+                <i class="fa fa-circle-o"></i> FAQ
+            </a>
+        </li>
+    </ul>
+</li>
+<li>
+    <a href="{% url 'mailing' %}">
+        <i class="fa fa-send"></i> <span>Рассылка</span>
+    </a>
+</li>
+{% endblock nav_links %}
