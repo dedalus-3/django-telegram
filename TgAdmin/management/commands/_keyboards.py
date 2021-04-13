@@ -63,17 +63,23 @@ async def language_inline_btn():
     ])
     return choice
 
-link = InlineKeyboardMarkup(inline_keyboard=[
-    [
-        InlineKeyboardButton(text='Перейти по ссылке', url=link_bot),
-    ],
-])
 
-link_en = InlineKeyboardMarkup(inline_keyboard=[
-    [
-        InlineKeyboardButton(text='Follow the link', url=link_bot),
-    ],
-])
+async def link(url):
+    link = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text='Перейти по ссылке', url=url),
+        ],
+    ])
+    return link
+
+
+async def link_en(url):
+    link_en = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text='Follow the link', url=url),
+        ],
+    ])
+    return link_en
 
 
 def telebot_create_inline_btn(user_id, btn1, btn2):
@@ -84,8 +90,8 @@ def telebot_create_inline_btn(user_id, btn1, btn2):
     return choice
 
 
-def telebot_link():
+def telebot_link(url):
     choice = types.InlineKeyboardMarkup()
-    btn_1 = types.InlineKeyboardButton(text='Перейти', url=link_bot)
+    btn_1 = types.InlineKeyboardButton(text='Перейти', url=url)
     choice.add(btn_1)
     return choice

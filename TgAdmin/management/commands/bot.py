@@ -109,8 +109,10 @@ class Command(BaseCommand):
         async def welcome_page(message: types.Message):
             users = await get_users(message.from_user.id)
             if not users:
-                await create_user(id_user=message.from_user.id, username=message.from_user.username,
-                                  fullname=message.from_user.full_name, state='5')
+                user_id = message.from_user.id
+                if str(user_id) != env.str("ID_ADMIN_FOR_2_BOT"):
+                    await create_user(id_user=message.from_user.id, username=message.from_user.username,
+                                      fullname=message.from_user.full_name, state='5')
             else:
                 if users.filter(state='2'):
                     if users.filter(state='4'):

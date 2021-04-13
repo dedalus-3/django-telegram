@@ -2,7 +2,8 @@ from environs import Env
 import time
 import telebot
 from telebot import apihelper
-from TgAdmin.models import Users, TempDataSupport, TempDataBtn, Data, Chat
+from TgAdmin.models import Users, Data, Chat
+from TgAdmin.constants import Const
 from django.db.models import Q
 from django.core.management.base import BaseCommand
 import datetime
@@ -17,7 +18,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         bot = telebot.TeleBot(token=env.str("BOT_TOKEN"))
-        chat_id = env.str("CHAT_ID_GROUP")
 
         def user_name(user) -> str:
             if user.username:
@@ -45,23 +45,27 @@ class Command(BaseCommand):
                             keyboard = telebot_create_inline_btn(i.iduser, Data.objects.get().btn1,
                                                                  Data.objects.get().btn2)
                             if not Data.objects.first().image:
-                                bot.send_message(chat_id=chat_id, text=f'{user_name(i)}\n{text}', reply_markup=keyboard,
+                                bot.send_message(chat_id=chat.chat_id, text=f'{user_name(i)}\n{text}', reply_markup=keyboard,
                                                  parse_mode='HTML')
                             else:
-                                bot.send_photo(chat_id=chat_id, photo=Data.objects.first().image,
+                                bot.send_photo(chat_id=chat.chat_id, photo=Data.objects.first().image,
                                                caption=f'{user_name(i)}\n{text}', reply_markup=keyboard,
                                                parse_mode='HTML')
                         else:
-                            keyboard_link = telebot_link()
-                            bot.send_message(chat_id=chat_id,
+                            chat_url_link_db = chat.url_link
+                            for e in Const.LINK:
+                                if chat_url_link_db == e[0]:
+                                    chat_url_link = e[1]
+                            keyboard_link = telebot_link(chat_url_link)
+                            bot.send_message(chat_id=chat.chat_id,
                                              text=f"{user_name_link(i)}\n"
-                                                  f"Отпишите пожалуйста в тех.поддержку, для этого нажмите кнопку",
+                                                  f"Отпишите пожалуйста по ссылке, для этого нажмите кнопку",
                                              reply_markup=keyboard_link, parse_mode='HTML')
                     except apihelper.ApiException as err:
                         time.sleep(int(str(err).split(' ')[-1]))
                 elif i.date_joined.date() + datetime.timedelta(days=7) == datetime.datetime.now().date():
                     try:
-                        bot.kick_chat_member(chat_id, i.iduser)
+                        bot.kick_chat_member(chat.chat_id, i.iduser)
                         user = Users.objects.get(iduser=i.iduser)
                         user.state = '3'
                         user.save()
