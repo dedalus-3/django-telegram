@@ -1,0 +1,54 @@
+version: "3.7"
+
+services:
+  web:
+    build:
+      context: .
+    restart: on-failure
+    env_file:
+      - .env
+    volumes:
+    - .:/home/dedalus
+    ports:
+    - "8000:8000"
+    depends_on:
+      - db
+  db:
+    image: postgres:12.6
+    ports:
+    - "5432:5432"
+    env_file:
+      - .env.prod.db
+    restart: always
+    volumes:
+    - postgres_data:/var/lib/postgresql/data/
+  bot_group:
+    build:
+      context: .
+      dockerfile: Dockerfile_bot_group
+    command: python manage.py bot_group
+    restart: on-failure
+    env_file:
+      - .env
+    depends_on:
+      - db
+  redis:
+    image: redis:latest
+    restart: on-failure
+    volumes:
+    - redis-data:/data
+  bot_tp:
+    build:
+      context: .
+      dockerfile: Dockerfile_bot_tp
+    command: python manage.py bot
+    restart: on-failure
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+  redis-data:

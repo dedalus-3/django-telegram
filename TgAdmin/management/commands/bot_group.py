@@ -27,28 +27,28 @@ class Command(BaseCommand):
                 full_name += ' ' + last_name
             return full_name
 
-        def user_name(message) -> str:
-            user_id = message['new_chat_member'].get('id')
-            if message['new_chat_member'].get('username'):
+        def user_name(user) -> str:
+            user_id = user['id']
+            if user['username']:
                 return f'Добро пожаловать <a href="tg://user?id={user_id}">' \
-                       f'{message["new_chat_member"].get("username")}</a>!'
-            elif fullname(message["new_chat_member"].get("first_name"), message["new_chat_member"].get("last_name")):
-                first_name = message['new_chat_member'].get('first_name')
-                last_name = message['new_chat_member'].get('last_name')
+                       f'{user["username"]}</a>!'
+            elif fullname(user['first_name'], user['last_name']):
+                first_name = user['first_name']
+                last_name = user['last_name']
                 full_name = fullname(first_name, last_name)
                 return f'Добро пожаловать ' \
                        f'<a href="tg://user?id={user_id}">{full_name}</a>!'
             else:
                 return f'Добро пожаловать <a href="tg://user?id={user_id}">пользователь</a>!'
 
-        def user_name_en(message) -> str:
-            user_id = message['new_chat_member'].get('id')
-            if message['new_chat_member'].get('username'):
+        def user_name_en(user) -> str:
+            user_id = user['id']
+            if user['username']:
                 return f'Welcome <a href="tg://user?id={user_id}">' \
-                       f'{message["new_chat_member"].get("username")}</a>!'
-            elif fullname(message["new_chat_member"].get("first_name"), message["new_chat_member"].get("last_name")):
-                first_name = message['new_chat_member'].get('first_name')
-                last_name = message['new_chat_member'].get('last_name')
+                       f'{user["username"]}</a>!'
+            elif fullname(user["first_name"], user["last_name"]):
+                first_name = user['first_name']
+                last_name = user['last_name']
                 full_name = fullname(first_name, last_name)
                 return f'Welcome ' \
                        f'<a href="tg://user?id={user_id}">{full_name}</a>!'
@@ -94,11 +94,19 @@ class Command(BaseCommand):
             return Users.objects.get(iduser=user_id, chat_id=chat).state
 
         @sync_to_async
-        def update_state_user(id_user, chat_id, state):
+        def update_state_user(id_user, chat_id, state) -> None:
             chat = Chat.objects.get(chat_id=chat_id)
             user = Users.objects.get(iduser=id_user, chat_id=chat)
             user.state = state
             user.save(update_fields=['state'])
+
+        @sync_to_async
+        def state_for_user_no_group(id_user):
+            return Users.objects.filter(iduser=id_user)
+
+        @sync_to_async
+        def update_state_user_no_group(id_user, state):
+            return Users.objects.filter(iduser__in=id_user).update(state=state)
 
         @sync_to_async
         def create_group(chat_id, name, url_chat):
@@ -111,6 +119,13 @@ class Command(BaseCommand):
             except ObjectDoesNotExist:
                 # TODO на этот счет сделать логирование и потом посмотреть, много ли он косячит
                 pass
+
+        @sync_to_async
+        def update_message_id(user_id, chat_id, message_id):
+            chat = Chat.objects.get(chat_id=chat_id)
+            user = Users.objects.get(iduser=user_id, chat_id=chat)
+            user.message_id = message_id
+            user.save(update_fields=['message_id'])
 
         @dp.message_handler(commands=['add_group'])
         async def test(message: types.Message):
@@ -127,91 +142,106 @@ class Command(BaseCommand):
 
         @dp.message_handler(content_types=types.ContentTypes.NEW_CHAT_MEMBERS)
         async def greeting_member(message: types.Message):
-            user_id = message['new_chat_member']['id']
-            user_username = message['new_chat_member'].get('username')
+            for user in message['new_chat_members']:
+                user_id = user['id']
+                user_username = user['username']
 
-            if str(user_id) != env.str("ID_ADMIN"):
-                if not message['new_chat_member']['is_bot']:
-                    chat = await select_group(message.chat.id)
-                    try:
-                        first_name = message['new_chat_member'].get('first_name')
-                        last_name = message['new_chat_member'].get('last_name')
-                        await create_user(id_user=user_id, username=user_username,
-                                          full_name=fullname(first_name, last_name),
-                                          chat_id=chat)
-                    except IntegrityError:
-                        pass
-                    if chat:
-                        if chat.language == 'en':
-                            text_btn1 = await select_btn1_en()
-                            text_btn2 = await select_btn2_en()
-                            if not await select_image():
-                                await message.answer(
-                                    text=f'{user_name_en(message)}\n{await select_text_en()}',
-                                    reply_markup=await create_inline_btn(message["new_chat_member"].get("id"),
-                                                                         text_btn1, text_btn2), parse_mode='HTML')
+                if str(user_id) != env.str("ID_ADMIN"):
+                    if not user['is_bot']:
+                        chat = await select_group(message.chat.id)
+                        try:
+                            first_name = user['first_name']
+                            last_name = user['last_name']
+                            await create_user(id_user=user_id, username=user_username,
+                                              full_name=fullname(first_name, last_name),
+                                              chat_id=chat)
+                        except IntegrityError:
+                            pass
+                        if chat:
+                            if chat.language == 'en':
+                                text_btn1 = await select_btn1_en()
+                                text_btn2 = await select_btn2_en()
+                                if not await select_image():
+                                    msg = await message.answer(
+                                        text=f'{user_name_en(user)}\n{await select_text_en()}',
+                                        reply_markup=await create_inline_btn(user['id'],
+                                                                             text_btn1, text_btn2), parse_mode='HTML')
+                                    await update_message_id(user_id, chat.chat_id, msg.message_id)
+                                else:
+                                    image = await select_image()
+                                    msg = await message.answer_photo(
+                                        photo=types.InputFile.from_url(f"http://{env.str('IP_DOMAIN')}{image.url}"),
+                                        caption=f"{user_name_en(user)}\n{await select_text_en()}",
+                                        reply_markup=await create_inline_btn(user['id'],
+                                                                             text_btn1, text_btn2),
+                                        parse_mode='HTML')
+                                    await update_message_id(user_id, chat.chat_id, msg.message_id)
                             else:
-                                image = await select_image()
-                                await message.answer_photo(
-                                    photo=types.InputFile.from_url(f"http://{env.str('IP_DOMAIN')}{image.url}"),
-                                    caption=f"{user_name_en(message)}\n{await select_text_en()}",
-                                    reply_markup=await create_inline_btn(message["new_chat_member"].get("id"),
-                                                                         text_btn1, text_btn2),
-                                    parse_mode='HTML')
+                                text_btn1 = await select_btn1()
+                                text_btn2 = await select_btn2()
+                                if not await select_image():
+                                    msg = await message.answer(
+                                        text=f'{user_name(user)}\n{await select_text()}',
+                                        reply_markup=await create_inline_btn(user['id'],
+                                                                             text_btn1, text_btn2), parse_mode='HTML')
+                                    await update_message_id(user_id, chat.chat_id, msg.message_id)
+                                else:
+                                    image = await select_image()
+                                    msg = await message.answer_photo(
+                                        photo=types.InputFile.from_url(f"http://{env.str('IP_DOMAIN')}{image.url}"),
+                                        caption=f"{user_name(user)}\n{await select_text()}",
+                                        reply_markup=await create_inline_btn(user['id'],
+                                                                             text_btn1, text_btn2),
+                                        parse_mode='HTML')
+                                    await update_message_id(user_id, chat.chat_id, msg.message_id)
                         else:
                             text_btn1 = await select_btn1()
                             text_btn2 = await select_btn2()
                             if not await select_image():
                                 await message.answer(
-                                    text=f'{user_name(message)}\n{await select_text()}',
-                                    reply_markup=await create_inline_btn(message["new_chat_member"].get("id"),
-                                                                         text_btn1, text_btn2), parse_mode='HTML')
+                                    text=f'{user_name(user)}\n{await select_text()}',
+                                    reply_markup=await create_inline_btn(user['id'], text_btn1,
+                                                                         text_btn2), parse_mode='HTML')
                             else:
                                 image = await select_image()
                                 await message.answer_photo(
                                     photo=types.InputFile.from_url(f"http://{env.str('IP_DOMAIN')}{image.url}"),
-                                    caption=f"{user_name(message)}\n{await select_text()}",
-                                    reply_markup=await create_inline_btn(message["new_chat_member"].get("id"),
-                                                                         text_btn1, text_btn2),
+                                    caption=f"{user_name(user)}\n{await select_text()}",
+                                    reply_markup=await create_inline_btn(user['id'], text_btn1,
+                                                                         text_btn2),
                                     parse_mode='HTML')
-                    else:
-                        text_btn1 = await select_btn1()
-                        text_btn2 = await select_btn2()
-                        if not await select_image():
-                            await message.answer(
-                                text=f'{user_name(message)}\n{await select_text()}',
-                                reply_markup=await create_inline_btn(message["new_chat_member"].get("id"), text_btn1,
-                                                                     text_btn2), parse_mode='HTML')
-                        else:
-                            image = await select_image()
-                            await message.answer_photo(
-                                photo=types.InputFile.from_url(f"http://{env.str('IP_DOMAIN')}{image.url}"),
-                                caption=f"{user_name(message)}\n{await select_text()}",
-                                reply_markup=await create_inline_btn(message["new_chat_member"].get("id"), text_btn1,
-                                                                     text_btn2),
-                                parse_mode='HTML')
 
         @dp.callback_query_handler(lambda c: c.data == f'yes|{c.from_user.id}')
         async def click_yes(call: types.CallbackQuery):
             chat = await select_group(call.message.chat.id)
-            chat_url_link_db = chat.url_link
-            for e in Const.LINK:
-                if chat_url_link_db == e[0]:
-                    chat_url_link = e[1]
-            if chat.language == 'en':
-                if await state_for_user(call.from_user.id, call.message.chat.id) != '2':
-                    await update_state_user(call.from_user.id, call.message.chat.id, '2')
-                var_link = await link_en(chat_url_link)
-                await call.message.edit_reply_markup(reply_markup=var_link)
+            if chat:
+                chat_url_link_db = chat.url_link
+                for e in Const.LINK:
+                    if chat_url_link_db == e[0]:
+                        chat_url_link = e[1]
+                if chat.language == 'en':
+                    if await state_for_user(call.from_user.id, call.message.chat.id) == '1':
+                        await update_state_user(call.from_user.id, call.message.chat.id, '2')
+                    var_link = await link_en(chat_url_link)
+                    await call.message.edit_reply_markup(reply_markup=var_link)
+                else:
+                    if await state_for_user(call.from_user.id, call.message.chat.id) == '1':
+                        await update_state_user(call.from_user.id, call.message.chat.id, '2')
+                    var_link = await link(chat_url_link)
+                    await call.message.edit_reply_markup(reply_markup=var_link)
             else:
-                if await state_for_user(call.from_user.id, call.message.chat.id) != '2':
-                    await update_state_user(call.from_user.id, call.message.chat.id, '2')
-                var_link = await link(chat_url_link)
+                users = await state_for_user_no_group(call.from_user.id)
+                users_list = []
+                for user in users:
+                    if user.state not in ['2', '3', '4']:
+                        users_list.append(user.iduser)
+                await update_state_user_no_group(users_list, '2')
+                var_link = await link(Const.LINK[0][1])
                 await call.message.edit_reply_markup(reply_markup=var_link)
 
         @dp.callback_query_handler(lambda c: c.data == f'no|{c.from_user.id}')
         async def click_no(call: types.CallbackQuery):
             await update_state_user(call.from_user.id, call.message.chat.id, '3')
-            await bot.kick_chat_member(chat_id=call.message.chat.id, user_id=call.from_user.id, until_date=31)
+            # await bot.kick_chat_member(chat_id=call.message.chat.id, user_id=call.from_user.id, until_date=31)
 
         executor.start_polling(dp, skip_updates=True)

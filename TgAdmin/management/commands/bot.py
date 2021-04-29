@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from environs import Env
 from aiogram import Bot, Dispatcher, types, executor
 from aiogram.dispatcher.filters import Command as Comm
@@ -22,8 +23,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         bot = Bot(token=env.str("BOT_TOKEN2"))
-        storage = RedisStorage2('127.0.0.1', 6379, db=5, pool_size=10, prefix='wait_for_support_message')
-        # storage = MemoryStorage()
+        storage = RedisStorage2(env.str("REDIS_HOST"), env.int("REDIS_PORT"), db=env.int("REDIS_DB"),
+                                pool_size=env.int("REDIS_POOL_SIZE"), prefix="wait_for_support_message")
         dp = Dispatcher(bot, storage=storage)
         id_admin = env.str("ID_ADMIN_FOR_2_BOT")
 
@@ -36,6 +37,22 @@ class Command(BaseCommand):
         async def on_shutdown(dp):
             await dp.storage.close()
             await dp.storage.wait_closed()
+
+        def name(message: types.Message) -> str:
+            if message.from_user.username:
+                return f'Вам письмо от <a href="tg://user?id={message.from_user.id}">{message.from_user.username}</a>!'
+            elif message.from_user.full_name:
+                return f'Вам письмо от <a href="tg://user?id={message.from_user.id}">{message.from_user.full_name}</a>!'
+            else:
+                return f'Вам письмо от <a href="tg://user?id={message.from_user.id}">пользователя</a>!'
+
+        def display_name_for_admin(user) -> str:
+            if user.username:
+                return f'<a href="tg://user?id={user.iduser}">{user.username}</a>'
+            elif user.fullname:
+                return f'<a href="tg://user?id={user.iduser}">{user.fullname}</a>'
+            else:
+                return f'<a href="tg://user?id={user.iduser}">пользователя</a>'
 
         @database_sync_to_async
         def get_users(id_user, state=None):
@@ -77,6 +94,10 @@ class Command(BaseCommand):
             return Data.objects.get().faq
 
         @sync_to_async
+        def get_faq_en():
+            return Data.objects.get().faq_en
+
+        @sync_to_async
         def get_tds(id_user):
             return TempDataSupport.objects.get(id_user=id_user)
 
@@ -91,19 +112,31 @@ class Command(BaseCommand):
 
         @sync_to_async
         def delete_obj_tds(id_user):
-            return TempDataSupport.objects.get(id_user=id_user).delete()
+            try:
+                return TempDataSupport.objects.get(id_user=id_user).delete()
+            except ObjectDoesNotExist:
+                pass
 
         @sync_to_async
         def create_obj_tdb(id_message, id_user):
-            return TempDataBtn.objects.create(id_message=id_message, id_user=id_user)
+            try:
+                return TempDataBtn.objects.create(id_message=id_message, id_user=id_user)
+            except IntegrityError:
+                pass
 
         @sync_to_async
         def get_tdb(id_user):
-            return TempDataBtn.objects.get(id_user=id_user)
+            try:
+                return TempDataBtn.objects.get(id_user=id_user)
+            except ObjectDoesNotExist:
+                pass
 
         @sync_to_async
         def delete_obj_tdb(id_user):
-            return TempDataBtn.objects.get(id_user=id_user).delete()
+            try:
+                return TempDataBtn.objects.get(id_user=id_user).delete()
+            except ObjectDoesNotExist:
+                pass
 
         @dp.message_handler(commands=['start'])
         async def welcome_page(message: types.Message):
@@ -117,18 +150,22 @@ class Command(BaseCommand):
                 if users.filter(state='2'):
                     if users.filter(state='4'):
                         users_id_state_four = []
-                        for user in users.filter('4'):
+                        for user in users.filter(state='4'):
                             users_id_state_four.append(user.iduser)
                         await update_for_user(users_id_state_four, '4', is_banned=False)
                         user_state_four = users.filter(state='4')[0]
                         users_id_state_two = []
-                        for user in user.filter(state='2'):
+                        for user in users.filter(state='2'):
                             users_id_state_two.append(user.iduser)
                         await update_for_user(users_id_state_two, '2', state='4', language=user_state_four.language)
                         if user_state_four.language == 'en':
-                            await message.answer(text='Enter the command "/support" to ask a question')
+                            await message.answer(text='Enter the command "/support" to ask a question.\n'
+                                                      'Perhaps the question you are interested in has already'
+                                                      ' been asked, you can read it by clicking "/faq"')
                         else:
-                            await message.answer(text='Введите команду "/support", чтобы задать вопрос')
+                            await message.answer(text='Введите команду "/support", чтобы задать вопрос.\n'
+                                                      'Возможно, интересующий Вас вопрос уже задали,'
+                                                      ' ознакомиться можно, нажав "/faq"')
                     else:
                         users_id_state_two = []
                         for user in users.filter(state='2'):
@@ -143,28 +180,61 @@ class Command(BaseCommand):
                     await update_for_user(users_id_state_four, '4', is_banned=False)
                     user_state_four = await get_user(users_id_state_four[0], '4')
                     if user_state_four.language == 'en':
-                        await message.answer(text='Enter the command "/support" to ask a question')
+                        await message.answer(text='Enter the command "/support" to ask a question.\n'
+                                                  'Perhaps the question you are interested in has already'
+                                                  ' been asked, you can read it by clicking "/faq"'
+                                             )
                     else:
-                        await message.answer(text='Введите команду "/support", чтобы задать вопрос')
+                        await message.answer(text='Введите команду "/support", чтобы задать вопрос.\n'
+                                                  'Возможно, интересующий Вас вопрос уже задали,'
+                                                  ' ознакомиться можно, нажав "/faq"'
+                                             )
                 elif users.filter(state='1'):
+                    text = 'Вы не ответили в чате, перейдите обратно в чат и ответье положительно.\nКак ответите в ' \
+                           'чате, вернитесь в техподдержку и введите ещё раз команду /start.\nYou did not reply in ' \
+                           'the chat, go back to the chat and reply positively.\n Once you have answered in the chat, ' \
+                           'go back to the support team and enter the /start command again.'
+                    text_many = 'Вы не ответили в чате, перейдите обратно в любой из чатов и ответье ' \
+                                'положительно.\nКак ответите в чате, вернитесь в техподдержку и введите еще раз ' \
+                                'команду /start\nYou did not reply in the chat, go back to any of the chats and reply ' \
+                                'positively.\nAs soon as you respond in the chat, go back to tech support and enter ' \
+                                'the /start command again '
                     if len(users.filter(state='1')) == 1:
                         user = users.filter(state='1')[0]
-                        # user = await get_user(message.from_user.id, '1')
                         try:
                             url_chat = user.chat_id.url_chat
-                            keyboard = await keyboard_state_1(url_chat)
-                            await message.answer(text='Вы не ответили в чате, перейдите обратно в чат\n'
-                                                      'You have not answered in the chat, go back to the chat',
+                            if user.message_id:
+                                keyboard = await keyboard_state_1(f"{url_chat}/{user.message_id}")
+                            else:
+                                keyboard = await keyboard_state_1(f"{url_chat}")
+                            await message.answer(text=text,
                                                  reply_markup=keyboard)
                         except AttributeError:
-                            await message.answer(text='Вы не ответили в чате, перейдите обратно в чат\n'
-                                                      'You have not answered in the chat, go back to the chat')
+                            await message.answer(text=text)
                         except exceptions.BadRequest:
-                            await message.answer(text='Вы не ответили в чате, перейдите обратно в чат\n'
-                                                      'You have not answered in the chat, go back to the chat')
+                            await message.answer(text=text)
                     else:
-                        await message.answer(text='Вы не ответили в чате, перейдите обратно в чат\n'
-                                                  'You have not answered in the chat, go back to the chat')
+                        count = 0
+                        keyboard = types.InlineKeyboardMarkup()
+                        for user in users.filter(state='1'):
+                            if user.chat_id:
+                                count += 1
+                                if count > 3:
+                                    break
+                                else:
+                                    if user.message_id:
+                                        keyboard.add(types.InlineKeyboardButton(text=f"Ссылка на {count} чат",
+                                                                                url=f"{user.chat_id.url_chat}/{user.message_id}"))
+                                    else:
+                                        keyboard.add(types.InlineKeyboardButton(text=f"Ссылка на {count} чат",
+                                                                                url=f"{user.chat_id.url_chat}"))
+                        if count == 0:
+                            await message.answer(text=text)
+                        else:
+                            try:
+                                await message.answer(text=text_many, reply_markup=keyboard)
+                            except exceptions.BadRequest:
+                                await message.answer(text=text)
                 elif users.filter(state='3'):
                     await message.answer(text='Вам техподдержка не сможет ответить!\n'
                                               'Technical support will not be able to answer you!')
@@ -172,19 +242,26 @@ class Command(BaseCommand):
         @dp.callback_query_handler(lambda call: call.data.startswith('language'))
         async def choice_language(call: types.CallbackQuery):
             _, language = call.data.split('|')
+            await call.answer()
             users_id_state_four = []
             if language == 'en':
                 users = await get_users(call.from_user.id, '4')
                 for user in users:
                     users_id_state_four.append(user.iduser)
                 await update_for_user(users_id_state_four, '4', language='en')
-                await call.message.answer(text='Enter the command "/support" to ask a question')
+                await call.message.answer(text='Enter the command "/support" to ask a question\n'
+                                               'Perhaps the question you are interested in has already'
+                                               ' been asked, you can read it by clicking "/faq"'
+                                          )
             else:
                 users = await get_users(call.from_user.id, '4')
                 for user in users:
                     users_id_state_four.append(user.iduser)
                 await update_for_user(users_id_state_four, '4', language='ru')
-                await call.message.answer(text='Введите команду "/support", чтобы задать вопрос')
+                await call.message.answer(text='Введите команду "/support", чтобы задать вопрос\n'
+                                               'Возможно, интересующий Вас вопрос уже задали,'
+                                               ' ознакомиться можно, нажав "/faq"'
+                                          )
 
         @dp.message_handler(Comm('support'))
         async def ask_support(message: types.Message):
@@ -198,11 +275,25 @@ class Command(BaseCommand):
                     text = "Хотите написать сообщение техподдержке? Нажмите на кнопку ниже!"
                     keyboard = await support_keyboard(language='ru')
                 await message.answer(text, reply_markup=keyboard)
+            elif users.filter(state='2'):
+                text = 'Введите команду "/start", чтобы написать в техподдержку!\n' \
+                       'Enter the command "/start" to write to technical support!'
+                await message.answer(text=text)
 
         @dp.message_handler(Comm('faq'))
         async def faq_support(message: types.Message):
-            text = await get_faq()
-            await message.answer(text=text)
+            users = await get_users(message.from_user.id, '4')
+            if users:
+                user = await get_user(message.from_user.id, '4')
+                if user.language == 'en':
+                    text = await get_faq_en()
+                    await message.answer(text=text, parse_mode='HTML')
+                else:
+                    text = await get_faq()
+                    await message.answer(text=text, parse_mode='HTML')
+            else:
+                text = await get_faq()
+                await message.answer(text=text, parse_mode='HTML')
 
         @dp.callback_query_handler(lambda call: call.data.startswith('ask_support'))
         async def send_to_support(call: types.CallbackQuery, state: FSMContext):
@@ -216,7 +307,8 @@ class Command(BaseCommand):
             if as_user == 'no':
                 await delete_obj_tds(id_user=user_id)
                 await create_obj_tdb(id_message=call.message.message_id, id_user=user_id)
-                await call.message.answer('Пришлите Ваше сообщение, которым Вы хотите поделиться')
+                await call.message.answer(f'Пришлите Ваше сообщение, которым Вы хотите поделиться с пользователем'
+                                          f' {display_name_for_admin(user)}', parse_mode='HTML')
             else:
                 if user.language == 'en':
                     await call.message.answer('Send your message that you want to share')
@@ -228,7 +320,11 @@ class Command(BaseCommand):
 
         @dp.callback_query_handler(lambda call: call.data.startswith('ask_support'), state='*')
         async def send_to_support(call: types.CallbackQuery):
-            await call.answer()
+            _, _, as_user = call.data.split(':')
+            if as_user == 'no':
+                await call.answer(text='Сперва ответье пользователю, которому начали отвечать!')
+            else:
+                await call.answer(text='Введите сообщение! Enter message!')
 
         @dp.message_handler(state='wait_for_support_message', content_types=types.ContentTypes.ANY)
         async def get_support_message(message: types.Message, state: FSMContext):
@@ -245,36 +341,60 @@ class Command(BaseCommand):
                 try:
                     d = await get_tds(id_user=id_user)
                     await update_text_tds(d, message.text)
-                    await bot.edit_message_text(text=f"Вам письмо от @{message.from_user.username}! "
+                    await bot.edit_message_text(text=f"{name(message)} "
                                                      f"Язык: {user.language}\n\n{d.text}\n"
                                                      f"\nВы можете ответить, нажав кнопку ниже",
-                                                chat_id=id_admin, message_id=d.id_message, reply_markup=keyboard)
+                                                chat_id=id_admin, message_id=d.id_message, reply_markup=keyboard,
+                                                parse_mode='HTML')
                 except ObjectDoesNotExist:
                     a = await bot.send_message(second_id,
-                                               f"Вам письмо от @{message.from_user.username}! Язык: {user.language}"
+                                               f"{name(message)} Язык: {user.language}"
                                                f"\n\n{message.text}\n"
-                                               f"\nВы можете ответить, нажав кнопку ниже", reply_markup=keyboard)
+                                               f"\nВы можете ответить, нажав кнопку ниже", reply_markup=keyboard,
+                                               parse_mode='HTML')
                     await create_tds(id_message=a.message_id, id_user=id_user, text=message.text)
                 if user.language == 'en':
-                    await message.answer("You have sent a question to technical support!")
+                    await message.answer("✅You have sent a question to technical support!✅"
+                                         "\nTo ask another question, type '/support'")
                 else:
-                    await message.answer("Вы отправили вопрос в техподдержку!")
+                    await message.answer("✅Вы отправили вопрос в техподдержку!✅\n"
+                                         "Чтобы задать еще вопрос, введите команду '/support'")
             elif as_user == 'no':
                 keyboard = await after_answer_support()
                 d = await get_tdb(id_user=second_id)
-                await bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=d.id_message,
-                                                    reply_markup=keyboard)
-                await delete_obj_tdb(id_user=second_id)
+                if d:
+                    await bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=d.id_message,
+                                                        reply_markup=keyboard)
                 if user.language == 'en':
-                    await bot.send_message(second_id, f"You received a response from technical support:"
-                                                      f"\n\n{message.text}")
+                    try:
+                        await bot.send_message(second_id, f"You received a response from technical support:"
+                                                          f"\n\n{message.text}")
+                        await message.answer("Вы ответили пользователю!")
+                    except exceptions.BotBlocked:
+                        await message.answer("Пользователь заблокировал бота")
                 else:
-                    await bot.send_message(second_id, f"Вам пришел ответ от техподдержки:\n\n{message.text}")
-                await message.answer("Вы ответили пользователю!")
+                    try:
+                        await bot.send_message(second_id, f"Вам пришел ответ от техподдержки:\n\n{message.text}")
+                        await message.answer("Вы ответили пользователю!")
+                    except exceptions.BotBlocked:
+                        await message.answer("Пользователь заблокировал бота")
+                await delete_obj_tdb(id_user=second_id)
             await state.reset_state()
 
         @dp.callback_query_handler(lambda call: call.data == 'after_answer')
         async def after_answer(call: types.CallbackQuery):
             await call.answer("Вы уже ответили этому пользователю!", show_alert=True)
+
+        @dp.message_handler(content_types=types.ContentTypes.ANY)
+        async def get_support_message(message: types.Message):
+            if str(message.from_user.id) != id_admin:
+                if await get_users(message.from_user.id, '4'):
+                    user = await get_user(message.from_user.id, '4')
+                    if user.language == 'en':
+                        await message.answer("❗️❗️<b>THE MESSAGE WAS NOT SENT TO TECHNICAL SUPPORT</b>❗️❗️"
+                                             "\nTo send a message, click on '/support'", parse_mode='HTML')
+                    else:
+                        await message.answer("❗❗<b>СООБЩЕНИЕ НЕ ОТПРАВЛЕНО В ТЕХПОДДЕРЖКУ</b>❗❗"
+                                             "\nЧтобы отправить сообщение, кликните по '/support'", parse_mode='HTML')
 
         executor.start_polling(dp, on_startup=set_default_commands, on_shutdown=on_shutdown)

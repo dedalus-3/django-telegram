@@ -67,7 +67,7 @@ async def language_inline_btn():
 async def link(url):
     link = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text='Перейти по ссылке', url=url),
+            InlineKeyboardButton(text='Сделайте заказ', url=url),
         ],
     ])
     return link
@@ -76,7 +76,7 @@ async def link(url):
 async def link_en(url):
     link_en = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text='Follow the link', url=url),
+            InlineKeyboardButton(text='Make an order', url=url),
         ],
     ])
     return link_en

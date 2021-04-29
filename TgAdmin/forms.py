@@ -37,9 +37,10 @@ class BtnNo(ModelForm):
 class FaqForm(ModelForm):
     class Meta:
         model = Data
-        fields = ('faq', )
+        fields = ('faq', 'faq_en')
         widgets = {
             'faq': Textarea(attrs={'class': 'form-control'}),
+            'faq_en': Textarea(attrs={'class': 'form-control'}),
         }
 
 

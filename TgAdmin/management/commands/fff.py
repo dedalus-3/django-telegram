@@ -27,6 +27,14 @@ class Command(BaseCommand):
             else:
                 return f'Добро пожаловать <a href="tg://user?id={user.iduser}">пользователь</a>!'
 
+        def user_name_en(user) -> str:
+            if user.username:
+                return f'Welcome <a href="tg://user?id={user.iduser}">{user.username}</a>!'
+            elif user.fullname:
+                return f'Welcome <a href="tg://user?id={user.iduser}">{user.fullname}</a>!'
+            else:
+                return f'Welcome <a href="tg://user?id={user.iduser}">user</a>!'
+
         def user_name_link(user) -> str:
             if user.username:
                 return f'Уважаемый <a href="tg://user?id={user.iduser}">{user.username}</a>!'
@@ -35,41 +43,89 @@ class Command(BaseCommand):
             else:
                 return f'Уважаемый <a href="tg://user?id={user.iduser}">пользователь</a>!'
 
+        def user_name_link_en(user) -> str:
+            if user.username:
+                return f'Dear <a href="tg://user?id={user.iduser}">{user.username}</a>!'
+            elif user.fullname:
+                return f'Dear <a href="tg://user?id={user.iduser}">{user.fullname}</a>!'
+            else:
+                return f'Dear <a href="tg://user?id={user.iduser}">user</a>!'
+
         text = Data.objects.get().text_before_btn
+        text_en = Data.objects.get().text_before_btn_en
         for chat in Chat.objects.all():
-            for i in chat.users.filter(Q(state='1') | Q(state='2')):
-                if i.date_joined.date() + datetime.timedelta(days=3) == datetime.datetime.now().date() or \
-                        i.date_joined.date() + datetime.timedelta(days=6) == datetime.datetime.now().date():
-                    try:
-                        if i.state == '1':
-                            keyboard = telebot_create_inline_btn(i.iduser, Data.objects.get().btn1,
-                                                                 Data.objects.get().btn2)
-                            if not Data.objects.first().image:
-                                bot.send_message(chat_id=chat.chat_id, text=f'{user_name(i)}\n{text}', reply_markup=keyboard,
-                                                 parse_mode='HTML')
+            if chat.language == 'en':
+                for i in chat.users.filter(Q(state='1') | Q(state='2')):
+                    if i.date_joined.date() + datetime.timedelta(days=3) == datetime.datetime.now().date() or \
+                            i.date_joined.date() + datetime.timedelta(days=6) == datetime.datetime.now().date():
+                        try:
+                            if i.state == '1':
+                                keyboard = telebot_create_inline_btn(i.iduser, Data.objects.get().btn1_en,
+                                                                     Data.objects.get().btn2_en)
+                                if not Data.objects.first().image:
+                                    bot.send_message(chat_id=chat.chat_id, text=f'{user_name_en(i)}\n{text_en}',
+                                                     reply_markup=keyboard, parse_mode='HTML')
+                                else:
+                                    bot.send_photo(chat_id=chat.chat_id, photo=Data.objects.first().image,
+                                                   caption=f'{user_name_en(i)}\n{text_en}', reply_markup=keyboard,
+                                                   parse_mode='HTML')
                             else:
-                                bot.send_photo(chat_id=chat.chat_id, photo=Data.objects.first().image,
-                                               caption=f'{user_name(i)}\n{text}', reply_markup=keyboard,
-                                               parse_mode='HTML')
-                        else:
-                            chat_url_link_db = chat.url_link
-                            for e in Const.LINK:
-                                if chat_url_link_db == e[0]:
-                                    chat_url_link = e[1]
-                            keyboard_link = telebot_link(chat_url_link)
-                            bot.send_message(chat_id=chat.chat_id,
-                                             text=f"{user_name_link(i)}\n"
-                                                  f"Отпишите пожалуйста по ссылке, для этого нажмите кнопку",
-                                             reply_markup=keyboard_link, parse_mode='HTML')
-                    except apihelper.ApiException as err:
-                        time.sleep(int(str(err).split(' ')[-1]))
-                elif i.date_joined.date() + datetime.timedelta(days=7) == datetime.datetime.now().date():
-                    try:
-                        bot.kick_chat_member(chat.chat_id, i.iduser)
-                        user = Users.objects.get(iduser=i.iduser)
-                        user.state = '3'
-                        user.save()
-                    except apihelper.ApiException:
-                        pass
-                else:
-                    continue
+                                chat_url_link_db = chat.url_link
+                                for e in Const.LINK:
+                                    if chat_url_link_db == e[0]:
+                                        chat_url_link = e[1]
+                                keyboard_link = telebot_link(chat_url_link)
+                                bot.send_message(chat_id=chat.chat_id,
+                                                 text=f"{user_name_link_en(i)}\n"
+                                                      f"Please unsubscribe from the link, for this click the button",
+                                                 reply_markup=keyboard_link, parse_mode='HTML')
+                        except apihelper.ApiException as err:
+                            time.sleep(int(str(err).split(' ')[-1]))
+                    elif i.date_joined.date() + datetime.timedelta(days=7) == datetime.datetime.now().date():
+                        try:
+                            bot.kick_chat_member(chat.chat_id, i.iduser)
+                            user = Users.objects.get(iduser=i.iduser)
+                            user.state = '3'
+                            user.save()
+                        except apihelper.ApiException:
+                            pass
+                    else:
+                        continue
+            else:
+                for i in chat.users.filter(Q(state='1') | Q(state='2')):
+                    if i.date_joined.date() + datetime.timedelta(days=3) == datetime.datetime.now().date() or \
+                            i.date_joined.date() + datetime.timedelta(days=6) == datetime.datetime.now().date():
+                        try:
+                            if i.state == '1':
+                                keyboard = telebot_create_inline_btn(i.iduser, Data.objects.get().btn1,
+                                                                     Data.objects.get().btn2)
+                                if not Data.objects.first().image:
+                                    bot.send_message(chat_id=chat.chat_id, text=f'{user_name(i)}\n{text}',
+                                                     reply_markup=keyboard,
+                                                     parse_mode='HTML')
+                                else:
+                                    bot.send_photo(chat_id=chat.chat_id, photo=Data.objects.first().image,
+                                                   caption=f'{user_name(i)}\n{text}', reply_markup=keyboard,
+                                                   parse_mode='HTML')
+                            else:
+                                chat_url_link_db = chat.url_link
+                                for e in Const.LINK:
+                                    if chat_url_link_db == e[0]:
+                                        chat_url_link = e[1]
+                                keyboard_link = telebot_link(chat_url_link)
+                                bot.send_message(chat_id=chat.chat_id,
+                                                 text=f"{user_name_link(i)}\n"
+                                                      f"Отпишите пожалуйста по ссылке, для этого нажмите кнопку",
+                                                 reply_markup=keyboard_link, parse_mode='HTML')
+                        except apihelper.ApiException as err:
+                            time.sleep(int(str(err).split(' ')[-1]))
+                    elif i.date_joined.date() + datetime.timedelta(days=7) == datetime.datetime.now().date():
+                        try:
+                            bot.kick_chat_member(chat.chat_id, i.iduser)
+                            user = Users.objects.get(iduser=i.iduser)
+                            user.state = '3'
+                            user.save()
+                        except apihelper.ApiException:
+                            pass
+                    else:
+                        continue

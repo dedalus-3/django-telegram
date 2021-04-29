@@ -33,3 +33,8 @@ class Const:
     Здесь будут ответы на часто задаваевые вопросы!
     Сейчас введите команду "/support", чтобы задать вопрос в техподдержку.
     """
+
+    TEXT_FOR_FAQ_EN = """
+    Here are the answers to frequently asked questions!
+    Now enter the command "/support" to ask a question to technical support.
+    """
