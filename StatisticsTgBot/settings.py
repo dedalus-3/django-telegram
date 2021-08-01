@@ -177,6 +177,8 @@ MDEDITOR_CONFIGS = {
 
 }
 
+DJANGO_SETTINGS_MODULE = 'StatisticsTgBot.settings'
+
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = 'true'
 
 # LOGGING = {

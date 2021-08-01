@@ -1,14 +1,17 @@
+import asyncio
+
 from environs import Env
 from aiogram import Bot, Dispatcher, types, executor
-from asgiref.sync import sync_to_async
+from aiogram.utils.exceptions import RetryAfter
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError
+from django.db import transaction
 
-from TgAdmin.models import Users, Data, Chat
 from TgAdmin.constants import Const
 from ._keyboards import create_inline_btn, link, link_en
+from . import _db as db
+from . import _common as common
 
 env = Env()
 env.read_env()
@@ -21,227 +24,198 @@ class Command(BaseCommand):
         bot = Bot(token=env.str("BOT_TOKEN"))
         dp = Dispatcher(bot)
 
-        def fullname(first_name: str, last_name: str) -> str:
-            full_name = first_name
-            if last_name:
-                full_name += ' ' + last_name
-            return full_name
+        async def bot_send_message_user(chat_member, btn1, btn2):
+            """
+            Отправляет сообщение в чат
+            """
+            return await bot.send_message(
+                chat_id=chat_member.chat.id,
+                text=f'{common.user_name_en(chat_member)}\n{await db.select_text_en()}',
+                parse_mode='HTML',
+                reply_markup=await create_inline_btn(
+                    chat_member.new_chat_member.user.id,
+                    btn1,
+                    btn2,
+                ),
+            )
 
-        def user_name(user) -> str:
-            user_id = user['id']
-            if user['username']:
-                return f'Добро пожаловать <a href="tg://user?id={user_id}">' \
-                       f'{user["username"]}</a>!'
-            elif fullname(user['first_name'], user['last_name']):
-                first_name = user['first_name']
-                last_name = user['last_name']
-                full_name = fullname(first_name, last_name)
-                return f'Добро пожаловать ' \
-                       f'<a href="tg://user?id={user_id}">{full_name}</a>!'
-            else:
-                return f'Добро пожаловать <a href="tg://user?id={user_id}">пользователь</a>!'
+        async def bot_send_photo_user(chat_member, btn1, btn2, image):
+            """
+            Отправляет фотографию в чат
+            """
+            return await bot.send_photo(
+                chat_id=chat_member.chat.id,
+                photo=types.InputFile.from_url(f"http://{env.str('IP_DOMAIN')}{image.url}"),
+                caption=f"{common.user_name_en(chat_member)}\n{await db.select_text_en()}",
+                parse_mode='HTML',
+                reply_markup=await create_inline_btn(
+                    chat_member.new_chat_member.user.id,
+                    btn1,
+                    btn2,
+                ),
+            )
 
-        def user_name_en(user) -> str:
-            user_id = user['id']
-            if user['username']:
-                return f'Welcome <a href="tg://user?id={user_id}">' \
-                       f'{user["username"]}</a>!'
-            elif fullname(user["first_name"], user["last_name"]):
-                first_name = user['first_name']
-                last_name = user['last_name']
-                full_name = fullname(first_name, last_name)
-                return f'Welcome ' \
-                       f'<a href="tg://user?id={user_id}">{full_name}</a>!'
-            else:
-                return f'Welcome <a href="tg://user?id={user_id}">user</a>!'
-
-        @sync_to_async
-        def create_user(id_user, username, full_name, chat_id, state='1'):
-            return Users.objects.create(iduser=id_user, username=username, fullname=full_name, state=state,
-                                        chat_id=chat_id)
-
-        @sync_to_async
-        def select_btn1():
-            return Data.objects.get().btn1
-
-        @sync_to_async
-        def select_btn1_en():
-            return Data.objects.get().btn1_en
-
-        @sync_to_async
-        def select_btn2():
-            return Data.objects.get().btn2
-
-        @sync_to_async
-        def select_btn2_en():
-            return Data.objects.get().btn2_en
-
-        @sync_to_async
-        def select_text():
-            return Data.objects.get().text_before_btn
-
-        @sync_to_async
-        def select_text_en():
-            return Data.objects.get().text_before_btn_en
-
-        @sync_to_async
-        def select_image():
-            return Data.objects.get().image
-
-        @sync_to_async
-        def state_for_user(user_id, chat_id):
-            chat = Chat.objects.get(chat_id=chat_id)
-            return Users.objects.get(iduser=user_id, chat_id=chat).state
-
-        @sync_to_async
-        def update_state_user(id_user, chat_id, state) -> None:
-            chat = Chat.objects.get(chat_id=chat_id)
-            user = Users.objects.get(iduser=id_user, chat_id=chat)
-            user.state = state
-            user.save(update_fields=['state'])
-
-        @sync_to_async
-        def state_for_user_no_group(id_user):
-            return Users.objects.filter(iduser=id_user)
-
-        @sync_to_async
-        def update_state_user_no_group(id_user, state):
-            return Users.objects.filter(iduser__in=id_user).update(state=state)
-
-        @sync_to_async
-        def create_group(chat_id, name, url_chat):
-            return Chat.objects.create(chat_id=chat_id, name=name, url_chat=f'https://t.me/{url_chat}')
-
-        @sync_to_async
-        def select_group(chat_id):
+        async def bot_send_photo_or_message_user(func, user_id, chat_id, **kwargs):
+            """
+            Обработчка исключения RetryAfter telegram
+            """
             try:
-                return Chat.objects.get(chat_id=chat_id)
-            except ObjectDoesNotExist:
-                # TODO на этот счет сделать логирование и потом посмотреть, много ли он косячит
-                pass
+                msg = await func(**kwargs)
+            except RetryAfter as e:
+                await asyncio.sleep(e.timeout)
+                msg = await func(**kwargs)
+            await db.update_message_id(
+                user_id=user_id,
+                chat_id=chat_id,
+                message_id=msg.message_id
+            )
 
-        @sync_to_async
-        def update_message_id(user_id, chat_id, message_id):
-            chat = Chat.objects.get(chat_id=chat_id)
-            user = Users.objects.get(iduser=user_id, chat_id=chat)
-            user.message_id = message_id
-            user.save(update_fields=['message_id'])
+        async def check_image(user_id, chat_id, chat_member, btn1, btn2, image):
+            """
+            Проверка изображения в админке
+            """
+            if not image:
+                await bot_send_photo_or_message_user(
+                    bot_send_message_user,
+                    user_id,
+                    chat_id,
+                    chat_member=chat_member,
+                    btn1=btn1,
+                    btn2=btn2,
+                )
+            else:
+                await bot_send_photo_or_message_user(
+                    bot_send_photo_user,
+                    user_id,
+                    chat_id,
+                    chat_member=chat_member,
+                    btn1=btn1,
+                    btn2=btn2,
+                    image=image,
+                )
 
         @dp.message_handler(commands=['add_group'])
         async def test(message: types.Message):
+            """
+            Добавление чата в БД
+            """
             user = types.User.get_current()
             if str(user.id) == env.str("ID_ADMIN"):
                 try:
-                    await create_group(message.chat.id, message.chat.title, message.chat.username)
+                    await db.create_group(message.chat.id, message.chat.title, message.chat.username)
                     await message.answer(
                         'Группа сохранена в базе данных. Перейдите на сайт администрирования, '
                         'чтобы настроить <b>url техподдержки</b>, <b>язык чата</b> и <b>url чата</b>',
                         parse_mode='HTML')
                 except IntegrityError:
                     await message.answer('Данная группа уже добавлена')
+            else:
+                await message.answer('Вы не являетесь владельцем чата!')
 
-        @dp.message_handler(content_types=types.ContentTypes.NEW_CHAT_MEMBERS)
-        async def greeting_member(message: types.Message):
-            for user in message['new_chat_members']:
-                user_id = user['id']
-                user_username = user['username']
+        @dp.message_handler(content_types=types.ContentTypes.LEFT_CHAT_MEMBER)
+        async def left_member(message: types.Message):
+            """
+            Удаление пользователя из БД, когда покидает чат
+            """
+            await db.delete_user(message.left_chat_member.id, message.chat.id)
 
-                if str(user_id) != env.str("ID_ADMIN"):
-                    if not user['is_bot']:
-                        chat = await select_group(message.chat.id)
-                        try:
-                            first_name = user['first_name']
-                            last_name = user['last_name']
-                            await create_user(id_user=user_id, username=user_username,
-                                              full_name=fullname(first_name, last_name),
-                                              chat_id=chat)
-                        except IntegrityError:
-                            pass
-                        if chat:
-                            if chat.language == 'en':
-                                text_btn1 = await select_btn1_en()
-                                text_btn2 = await select_btn2_en()
-                                if not await select_image():
-                                    msg = await message.answer(
-                                        text=f'{user_name_en(user)}\n{await select_text_en()}',
-                                        reply_markup=await create_inline_btn(user['id'],
-                                                                             text_btn1, text_btn2), parse_mode='HTML')
-                                    await update_message_id(user_id, chat.chat_id, msg.message_id)
-                                else:
-                                    image = await select_image()
-                                    msg = await message.answer_photo(
-                                        photo=types.InputFile.from_url(f"http://{env.str('IP_DOMAIN')}{image.url}"),
-                                        caption=f"{user_name_en(user)}\n{await select_text_en()}",
-                                        reply_markup=await create_inline_btn(user['id'],
-                                                                             text_btn1, text_btn2),
-                                        parse_mode='HTML')
-                                    await update_message_id(user_id, chat.chat_id, msg.message_id)
-                            else:
-                                text_btn1 = await select_btn1()
-                                text_btn2 = await select_btn2()
-                                if not await select_image():
-                                    msg = await message.answer(
-                                        text=f'{user_name(user)}\n{await select_text()}',
-                                        reply_markup=await create_inline_btn(user['id'],
-                                                                             text_btn1, text_btn2), parse_mode='HTML')
-                                    await update_message_id(user_id, chat.chat_id, msg.message_id)
-                                else:
-                                    image = await select_image()
-                                    msg = await message.answer_photo(
-                                        photo=types.InputFile.from_url(f"http://{env.str('IP_DOMAIN')}{image.url}"),
-                                        caption=f"{user_name(user)}\n{await select_text()}",
-                                        reply_markup=await create_inline_btn(user['id'],
-                                                                             text_btn1, text_btn2),
-                                        parse_mode='HTML')
-                                    await update_message_id(user_id, chat.chat_id, msg.message_id)
+        @dp.chat_member_handler()
+        async def text_message(chat_member: types.ChatMemberUpdated):
+            """
+            Добавление пользователя в БД, когда вступает в чат
+            """
+            new_status = chat_member.new_chat_member.status
+            old_status = chat_member.old_chat_member.status
+            if old_status == 'left' and new_status == 'member':
+                user_id = chat_member.new_chat_member.user.id
+                user_username = chat_member.new_chat_member.user.username
+
+                if user_id != env.str('ID_ADMIN') and not chat_member.new_chat_member.user.is_bot:
+                    chat = await db.select_group(str(chat_member.chat.id))
+                    try:
+                        full_name = common.fullname(
+                            chat_member.new_chat_member.user.first_name,
+                            chat_member.new_chat_member.user.last_name,
+                        )
+                        await db.create_user(
+                            id_user=user_id,
+                            username=user_username,
+                            chat_id=chat,
+                            full_name=full_name,
+                        )
+                    except IntegrityError:
+                        pass
+
+                    if chat:
+                        # Английский чат
+                        if chat.language == 'en':
+                            await check_image(
+                                chat_member=chat_member,
+                                user_id=user_id,
+                                chat_id=chat.chat_id,
+                                btn1=await db.select_btn1_en(),
+                                btn2=await db.select_btn2_en(),
+                                image=await db.select_image()
+                            )
                         else:
-                            text_btn1 = await select_btn1()
-                            text_btn2 = await select_btn2()
-                            if not await select_image():
-                                await message.answer(
-                                    text=f'{user_name(user)}\n{await select_text()}',
-                                    reply_markup=await create_inline_btn(user['id'], text_btn1,
-                                                                         text_btn2), parse_mode='HTML')
-                            else:
-                                image = await select_image()
-                                await message.answer_photo(
-                                    photo=types.InputFile.from_url(f"http://{env.str('IP_DOMAIN')}{image.url}"),
-                                    caption=f"{user_name(user)}\n{await select_text()}",
-                                    reply_markup=await create_inline_btn(user['id'], text_btn1,
-                                                                         text_btn2),
-                                    parse_mode='HTML')
+                            await check_image(
+                                chat_member=chat_member,
+                                user_id=user_id,
+                                chat_id=chat.chat_id,
+                                btn1=await db.select_btn1(),
+                                btn2=await db.select_btn2(),
+                                image=await db.select_image()
+                            )
+                    # Чат не выбран
+                    else:
+                        await check_image(
+                            chat_member=chat_member,
+                            user_id=user_id,
+                            chat_id=chat.chat_id,
+                            btn1=await db.select_btn1(),
+                            btn2=await db.select_btn2(),
+                            image=await db.select_image()
+                        )
 
         @dp.callback_query_handler(lambda c: c.data == f'yes|{c.from_user.id}')
         async def click_yes(call: types.CallbackQuery):
-            chat = await select_group(call.message.chat.id)
+            """
+            Действие на кнопку, когда пользователь согласен
+            """
+            chat = await db.select_group(call.message.chat.id)
             if chat:
                 chat_url_link_db = chat.url_link
+                chat_url_link = None
                 for e in Const.LINK:
                     if chat_url_link_db == e[0]:
                         chat_url_link = e[1]
                 if chat.language == 'en':
-                    if await state_for_user(call.from_user.id, call.message.chat.id) == '1':
-                        await update_state_user(call.from_user.id, call.message.chat.id, '2')
+                    if await db.state_for_user(call.from_user.id, call.message.chat.id) == '1':
+                        await db.update_state_user(call.from_user.id, call.message.chat.id, '2')
                     var_link = await link_en(chat_url_link)
                     await call.message.edit_reply_markup(reply_markup=var_link)
                 else:
-                    if await state_for_user(call.from_user.id, call.message.chat.id) == '1':
-                        await update_state_user(call.from_user.id, call.message.chat.id, '2')
+                    if await db.state_for_user(call.from_user.id, call.message.chat.id) == '1':
+                        await db.update_state_user(call.from_user.id, call.message.chat.id, '2')
                     var_link = await link(chat_url_link)
                     await call.message.edit_reply_markup(reply_markup=var_link)
             else:
-                users = await state_for_user_no_group(call.from_user.id)
+                users = await db.state_for_user_no_group(call.from_user.id)
                 users_list = []
                 for user in users:
                     if user.state not in ['2', '3', '4']:
                         users_list.append(user.iduser)
-                await update_state_user_no_group(users_list, '2')
+                await db.update_state_user_no_group(users_list, '2')
                 var_link = await link(Const.LINK[0][1])
                 await call.message.edit_reply_markup(reply_markup=var_link)
 
         @dp.callback_query_handler(lambda c: c.data == f'no|{c.from_user.id}')
+        @transaction.atomic
         async def click_no(call: types.CallbackQuery):
-            await update_state_user(call.from_user.id, call.message.chat.id, '3')
-            # await bot.kick_chat_member(chat_id=call.message.chat.id, user_id=call.from_user.id, until_date=31)
+            """
+            Действие пользователя, когда пользователь не согласен
+            """
+            await db.delete_user(call.from_user.id, call.message.chat.id)
+            await bot.kick_chat_member(chat_id=call.message.chat.id, user_id=call.from_user.id, until_date=31)
 
-        executor.start_polling(dp, skip_updates=True)
+        executor.start_polling(dp, skip_updates=True, allowed_updates=types.AllowedUpdates.all())

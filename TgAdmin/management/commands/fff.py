@@ -7,7 +7,7 @@ from TgAdmin.constants import Const
 from django.db.models import Q
 from django.core.management.base import BaseCommand
 import datetime
-from ._keyboards import telebot_create_inline_btn, telebot_link
+from ._keyboards import telebot_create_inline_btn, telebot_link, telebot_link_en
 
 env = Env()
 env.read_env()
@@ -56,8 +56,8 @@ class Command(BaseCommand):
         for chat in Chat.objects.all():
             if chat.language == 'en':
                 for i in chat.users.filter(Q(state='1') | Q(state='2')):
-                    if i.date_joined.date() + datetime.timedelta(days=3) == datetime.datetime.now().date() or \
-                            i.date_joined.date() + datetime.timedelta(days=6) == datetime.datetime.now().date():
+                    difference = datetime.datetime.now().date() - i.date_joined.date()
+                    if difference.days != 0 & difference.days % 3 == 0:
                         try:
                             if i.state == '1':
                                 keyboard = telebot_create_inline_btn(i.iduser, Data.objects.get().btn1_en,
@@ -70,31 +70,34 @@ class Command(BaseCommand):
                                                    caption=f'{user_name_en(i)}\n{text_en}', reply_markup=keyboard,
                                                    parse_mode='HTML')
                             else:
-                                chat_url_link_db = chat.url_link
-                                for e in Const.LINK:
-                                    if chat_url_link_db == e[0]:
-                                        chat_url_link = e[1]
-                                keyboard_link = telebot_link(chat_url_link)
+                                # chat_url_link_db = chat.url_link
+                                # for e in Const.LINK:
+                                #    if chat_url_link_db == e[0]:
+                                #        chat_url_link = e[1]
+                                # keyboard_link = telebot_link_en(chat_url_link)
+                                keyboard_link = telebot_link_en(env.str("LINK_MAILING_EN_GROUP"))
                                 bot.send_message(chat_id=chat.chat_id,
                                                  text=f"{user_name_link_en(i)}\n"
-                                                      f"Please unsubscribe from the link, for this click the button",
+                                                      f"You clicked <b>YES(agreed with our conditions "
+                                                      f"https://t.me/realengaforIG) click the button for making an "
+                                                      f"order</b>",
                                                  reply_markup=keyboard_link, parse_mode='HTML')
                         except apihelper.ApiException as err:
                             time.sleep(int(str(err).split(' ')[-1]))
-                    elif i.date_joined.date() + datetime.timedelta(days=7) == datetime.datetime.now().date():
-                        try:
-                            bot.kick_chat_member(chat.chat_id, i.iduser)
-                            user = Users.objects.get(iduser=i.iduser)
-                            user.state = '3'
-                            user.save()
-                        except apihelper.ApiException:
-                            pass
+                    #elif i.date_joined.date() + datetime.timedelta(days=7) == datetime.datetime.now().date():
+                    #    try:
+                    #        bot.kick_chat_member(chat.chat_id, i.iduser)
+                    #        user = Users.objects.get(iduser=i.iduser)
+                    #        user.state = '3'
+                    #        user.save()
+                    #   except apihelper.ApiException:
+                    #        pass
                     else:
                         continue
             else:
                 for i in chat.users.filter(Q(state='1') | Q(state='2')):
-                    if i.date_joined.date() + datetime.timedelta(days=3) == datetime.datetime.now().date() or \
-                            i.date_joined.date() + datetime.timedelta(days=6) == datetime.datetime.now().date():
+                    difference = datetime.datetime.now().date() - i.date_joined.date()
+                    if difference.days != 0 & difference.days % 3 == 0:
                         try:
                             if i.state == '1':
                                 keyboard = telebot_create_inline_btn(i.iduser, Data.objects.get().btn1,
@@ -115,17 +118,19 @@ class Command(BaseCommand):
                                 keyboard_link = telebot_link(chat_url_link)
                                 bot.send_message(chat_id=chat.chat_id,
                                                  text=f"{user_name_link(i)}\n"
-                                                      f"Отпишите пожалуйста по ссылке, для этого нажмите кнопку",
+                                                      f"Вы нажали кнопку <b>Да(согласились с условиями "
+                                                      f"https://t.me/joinchat/ZTHjrJWP5bA0ZDE1). Чтобы сделать заказ, "
+                                                      f"нажмите кнопку ниже</b>",
                                                  reply_markup=keyboard_link, parse_mode='HTML')
                         except apihelper.ApiException as err:
                             time.sleep(int(str(err).split(' ')[-1]))
-                    elif i.date_joined.date() + datetime.timedelta(days=7) == datetime.datetime.now().date():
-                        try:
-                            bot.kick_chat_member(chat.chat_id, i.iduser)
-                            user = Users.objects.get(iduser=i.iduser)
-                            user.state = '3'
-                            user.save()
-                        except apihelper.ApiException:
-                            pass
+                    # elif i.date_joined.date() + datetime.timedelta(days=7) == datetime.datetime.now().date():
+                    #     try:
+                    #         bot.kick_chat_member(chat.chat_id, i.iduser)
+                    #         user = Users.objects.get(iduser=i.iduser)
+                    #         user.state = '3'
+                    #         user.save()
+                    #     except apihelper.ApiException:
+                    #         pass
                     else:
                         continue

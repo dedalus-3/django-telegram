@@ -73,7 +73,7 @@ class Data(SingletonModel):
     btn2_en = models.CharField(max_length=255, verbose_name='Кнопка 2 (english)', default='Reject')
     faq = models.TextField(verbose_name='FAQ для техподдержки', default=Const.TEXT_FOR_FAQ)
     faq_en = models.TextField(verbose_name='FAQ english для техподдержки', default=Const.TEXT_FOR_FAQ_EN)
-    text_mailing = MDTextField(verbose_name='Текс для рассылки в техподдержке', default='Текст для рассылки')
+    text_mailing = models.TextField(verbose_name='Текс для рассылки в техподдержке', default='Текст для рассылки')
 
     def __str__(self):
         return 'Данные для изменения'

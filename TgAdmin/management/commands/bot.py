@@ -353,6 +353,14 @@ class Command(BaseCommand):
                                                f"\nВы можете ответить, нажав кнопку ниже", reply_markup=keyboard,
                                                parse_mode='HTML')
                     await create_tds(id_message=a.message_id, id_user=id_user, text=message.text)
+                # except exceptions.MessageToEditNotFound:
+                #     await delete_obj_tds(id_user=id_user)
+                #     a = await bot.send_message(second_id,
+                #                                f"{name(message)} Язык: {user.language}"
+                #                                f"\n\n{message.text}\n"
+                #                                f"\nВы можете ответить, нажав кнопку ниже", reply_markup=keyboard,
+                #                                parse_mode='HTML')
+                #     await create_tds(id_message=a.message_id, id_user=id_user, text=message.text)
                 if user.language == 'en':
                     await message.answer("✅You have sent a question to technical support!✅"
                                          "\nTo ask another question, type '/support'")

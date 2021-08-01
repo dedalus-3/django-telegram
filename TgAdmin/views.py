@@ -228,19 +228,40 @@ class UpdateMailingView(LoginRequiredMixin, UpdateView):
                 messages.error(self.request, 'Данного пользователя нет в вашей базе')
         else:
             users = Users.objects.filter(Q(state='4') & Q(is_banned=False)).order_by('iduser').distinct('iduser')
-            try:
-                if request.FILES.get('image_mailing'):
-                    for user in users:
-                        bot.send_photo(chat_id=user.iduser, photo=request.FILES.get('image_mailing'),
-                                       caption=request.POST['text_mailing'], parse_mode='HTML')
-                else:
-                    for user in users:
+            print(request.FILES.get('image_mailing'))
+            if request.FILES.get('image_mailing'):
+                first_send = True
+                # photo = bot.send_photo(chat_id='258119893', photo=request.FILES.get('image_mailing'))
+                # print(photo.json['photo'][0]['file_id'])
+                for user in users:
+                    try:
+                        if first_send:
+                            photo = bot.send_photo(chat_id=user.iduser, photo=request.FILES.get('image_mailing'))
+                            photo_file_id = photo.json['photo'][0]['file_id']
+                            first_send = False
+                        else:
+                            bot.send_photo(chat_id=user.iduser, photo=photo_file_id,
+                                           caption=request.POST['text_mailing'], parse_mode='HTML')
+                    except apihelper.ApiException as e:
+                        bot.send_message(chat_id="258119893", text=f"{e}")
+                        users = Users.objects.filter(iduser=user.iduser, state='4')
+                        for usr in users:
+                            usr.is_banned = True
+                            usr.save(update_fields=['is_banned'])
+            else:
+                for user in users:
+                    try:
                         bot.send_message(chat_id=user.iduser, text=request.POST['text_mailing'], parse_mode='HTML')
-                messages.success(self.request, 'Рассылка пользователям успешно выполнена')
-            except apihelper.ApiException:
-                users = Users.objects.filter(iduser=user.iduser, state='4')
-                for usr in users:
-                    usr.is_banned = True
-                    usr.save(update_fields=['is_banned'])
-                messages.success(self.request, 'Рассылка пользователям успешно выполнена')
+                    except apihelper.ApiException:
+                        users = Users.objects.filter(iduser=user.iduser, state='4')
+                        for usr in users:
+                            usr.is_banned = True
+                            usr.save(update_fields=['is_banned'])
+            messages.success(self.request, 'Рассылка пользователям успешно выполнена')
+
+            # users = Users.objects.filter(iduser=user.iduser, state='4')
+            # for usr in users:
+            #     usr.is_banned = True
+            #     usr.save(update_fields=['is_banned'])
+            # messages.success(self.request, 'Рассылка пользователям успешно выполнена')
         return super().post(request, *args, **kwargs)

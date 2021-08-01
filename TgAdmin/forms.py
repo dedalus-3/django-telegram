@@ -55,6 +55,9 @@ class MailingForm(ModelForm):
     class Meta:
         model = Data
         fields = ('text_mailing',)
+        widgets = {
+            'text_mailing': Textarea(attrs={'class': 'form-control'}),
+        }
 
 
 class ChatForm(ModelForm):

@@ -92,6 +92,13 @@ def telebot_create_inline_btn(user_id, btn1, btn2):
 
 def telebot_link(url):
     choice = types.InlineKeyboardMarkup()
-    btn_1 = types.InlineKeyboardButton(text='Перейти', url=url)
+    btn_1 = types.InlineKeyboardButton(text='Сделать заказ', url=url)
+    choice.add(btn_1)
+    return choice
+
+
+def telebot_link_en(url):
+    choice = types.InlineKeyboardMarkup()
+    btn_1  = types.InlineKeyboardButton(text="Make an order", url=url)
     choice.add(btn_1)
     return choice
