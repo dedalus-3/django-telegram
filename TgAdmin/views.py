@@ -1,4 +1,3 @@
-from django.template import RequestContext
 from environs import Env
 from telebot import TeleBot
 from telebot import apihelper
@@ -15,13 +14,35 @@ from django.views.generic.edit import UpdateView, DeleteView
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-from .models import Users, Data, Chat
-from .forms import TextForm, BtnYes, BtnNo, MailingForm, ChatForm, FaqForm
-from .mixins import ObjectListMixin
-
+from TgAdmin.models import Users, Data, Chat
+from TgAdmin.forms import TextForm, BtnYes, BtnNo, MailingForm, ChatForm, FaqForm
+from TgAdmin.mixins import ObjectListMixin
 
 env = Env()
 env.read_env()
+
+
+class SearchResultView(LoginRequiredMixin, ObjectListMixin, ListView):
+    """
+    Поиск пользователей
+    """
+    template_name = "TgAdmin/search.html"
+    model = Users
+
+    def get_queryset(self):
+        query = self.request.GET.get('q')
+        object_list = Users.objects.filter(
+            Q(username__icontains=query) |
+            Q(fullname__icontains=query) |
+            Q(chat_id__name__icontains=query)
+        )
+        return object_list
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['count_search'] = self.get_queryset().count()
+        context['search'] = self.request.GET.get('q')
+        return context
 
 
 class ChatView(LoginRequiredMixin, ListView):
@@ -58,6 +79,11 @@ class HomeView(LoginRequiredMixin, ObjectListMixin, ListView):
     template_name = "TgAdmin/home.html"
     model = Users
     paginate_by = 10
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['all_count'] = Users.objects.all().count()
+        return context
 
 
 class InactionView(LoginRequiredMixin, ObjectListMixin, ListView):

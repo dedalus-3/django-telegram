@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from TgAdmin import views
 
 urlpatterns = [
     path('', views.HomeView.as_view(), name='home'),
@@ -18,4 +18,5 @@ urlpatterns = [
     path('update_btn_no/', views.UpdateBtnNo.as_view(), name='btn2_create'),
     path('update_mailing/', views.UpdateMailingView.as_view(), name='mailing'),
     path('update_faq/', views.UpdateFaq.as_view(), name='edit_faq'),
+    path('search/', views.SearchResultView.as_view(), name='search_result'),
 ]

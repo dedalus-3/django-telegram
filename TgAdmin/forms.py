@@ -1,8 +1,8 @@
 from django import forms
 from django.forms import ModelForm, TextInput, Select, Textarea
 
-from .widgets import MyClearableFileInput
-from .models import Data, Chat
+from TgAdmin.widgets import MyClearableFileInput
+from TgAdmin.models import Data, Chat
 
 
 class TextForm(ModelForm):

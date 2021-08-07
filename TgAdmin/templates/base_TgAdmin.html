@@ -82,8 +82,10 @@
             <div class="box-body">
                 <div class="pull-left">
                     <div class="has-feedback">
-                        <input id="search_here" type="search" class="form-control input-sm" placeholder="Поиск...">
-                        <span class="glyphicon glyphicon-search form-control-feedback"></span>
+                        <form action="{% url 'search_result' %}" method="get">
+                            <input id="search_here" name="q" type="search" class="form-control input-sm" placeholder="Поиск...">
+                            <span class="glyphicon glyphicon-search form-control-feedback"></span>
+                        </form>
                     </div>
                 </div>
                 <div class="dataTables_wrapper form-inline dt-bootstrap">
@@ -133,30 +135,4 @@
         </div>
     </div>
 </div>
-
-
-<script>
-    const data = '{{ qs_json }}'
-    const rdata = JSON.parse(data.replace(/&quot;/g, '"'))
-    const input = document.getElementById('search_here')
-    let filteredArr = []
-
-    input.addEventListener('keyup', (e)=>{
-        box_test.innerHTML = ""
-        filteredArr = rdata.filter(info=> info['username'] !== null && info['username'].includes(e.target.value) || info['fullname'] !== null && info['fullname'].includes(e.target.value) || info['chat_id'] !== null && info['chat_id'].includes(e.target.value))
-        if(filteredArr.length>0){
-            filteredArr.map(item=>{
-                box_test.innerHTML += `<tr>
-                                <td>${item['iduser']}</td>
-                                <td>${item['username']}</td>
-                                <td>${item['fullname']}</td>
-                                <td>${item['date_joined']}</td>
-                                <td>${item['chat_id']}</td>
-                                <td>${item['state']}</td>
-                            </tr>`
-            })
-        }
-    })
-
-</script>
 {% endblock %}

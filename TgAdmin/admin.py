@@ -2,7 +2,7 @@ from solo.admin import SingletonModelAdmin
 
 from django.contrib import admin
 
-from . import models
+from TgAdmin import models
 
 
 admin.site.register(models.Users)
