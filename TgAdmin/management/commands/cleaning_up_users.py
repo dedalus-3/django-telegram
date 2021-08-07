@@ -56,11 +56,5 @@ class Command(BaseCommand):
                     else:
                         continue
 
-            chat1 = await client.get_entity(-1001202067628)
-            test1 = list()
-            for i in await client.get_participants(chat1):
-                test1.append(i.id)
-            print(len(test1))
-
         with client:
             client.loop.run_until_complete(get_actual_users())
