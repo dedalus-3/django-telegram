@@ -1,4 +1,3 @@
-from environs import Env
 from telebot import TeleBot
 from telebot import apihelper
 
@@ -17,9 +16,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from TgAdmin import forms
 from TgAdmin.models import Users, Data, Chat
 from TgAdmin.mixins import ObjectListMixin
-
-env = Env()
-env.read_env()
 
 
 class SearchResultView(LoginRequiredMixin, ObjectListMixin, ListView):
@@ -253,7 +249,7 @@ class UpdateMailingView(LoginRequiredMixin, UpdateView):
         return reverse('mailing')
 
     def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        bot = TeleBot(token=env.str("BOT_TOKEN2"))
+        bot = TeleBot(token=settings.BOT_TOKEN2)
         if request.POST['id_user']:
             if Users.objects.filter(iduser=request.POST['id_user']):
                 try:

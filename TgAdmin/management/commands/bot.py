@@ -1,5 +1,5 @@
+from django.conf import settings
 from django.db import IntegrityError
-from environs import Env
 from aiogram import Bot, Dispatcher, types, executor
 from aiogram.dispatcher.filters import Command as Comm
 from aiogram.dispatcher import FSMContext
@@ -14,19 +14,16 @@ from django.core.exceptions import ObjectDoesNotExist
 from TgAdmin.models import Users, TempDataSupport, TempDataBtn, Chat, Data
 from ._keyboards import keyboard_state_1, support_keyboard, after_answer_support, language_inline_btn
 
-env = Env()
-env.read_env()
-
 
 class Command(BaseCommand):
     help = 'Телеграм бот'
 
     def handle(self, *args, **options):
-        bot = Bot(token=env.str("BOT_TOKEN2"))
-        storage = RedisStorage2(env.str("REDIS_HOST"), env.int("REDIS_PORT"), db=env.int("REDIS_DB"),
-                                pool_size=env.int("REDIS_POOL_SIZE"), prefix="wait_for_support_message")
+        bot = Bot(token=settings.BOT_TOKEN2)
+        storage = RedisStorage2(settings.REDIS_HOST, settings.REDIS_PORT, db=settings.REDIS_DB,
+                                pool_size=settings.REDIS_POOL_SIZE, prefix="wait_for_support_message")
         dp = Dispatcher(bot, storage=storage)
-        id_admin = env.str("ID_ADMIN_FOR_2_BOT")
+        id_admin = settings.ID_ADMIN_FOR_2_BOT
 
         async def set_default_commands(dp):
             await dp.bot.set_my_commands([
@@ -143,7 +140,7 @@ class Command(BaseCommand):
             users = await get_users(message.from_user.id)
             if not users:
                 user_id = message.from_user.id
-                if str(user_id) != env.str("ID_ADMIN_FOR_2_BOT"):
+                if str(user_id) != settings.ID_ADMIN_FOR_2_BOT:
                     await create_user(id_user=message.from_user.id, username=message.from_user.username,
                                       fullname=message.from_user.full_name, state='5')
             else:

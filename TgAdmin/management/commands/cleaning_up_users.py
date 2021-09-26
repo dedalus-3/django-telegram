@@ -1,24 +1,21 @@
 import struct
 
 from django.core.management import BaseCommand
+from django.conf import settings
 
-from environs import Env
 from telethon import TelegramClient
 from telethon.errors.rpcerrorlist import PeerIdInvalidError
 
 from TgAdmin.models import Chat, Users
-
-env = Env()
-env.read_env()
 
 
 class Command(BaseCommand):
     help = 'Удаление пользователей'
 
     def handle(self, *args, **options):
-        api_id = env.int('API_ID')
-        api_hash = env.str('API_HASH')
-        bot_token = env.str('BOT_TOKEN')
+        api_id = settings.API_ID
+        api_hash = settings.API_HASH
+        bot_token = settings.BOT_TOKEN
 
         client = TelegramClient('client', api_id, api_hash)
 

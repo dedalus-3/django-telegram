@@ -1,9 +1,9 @@
 import asyncio
 
-from environs import Env
 from aiogram import Bot, Dispatcher, types, executor
 from aiogram.utils.exceptions import RetryAfter
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError
 from django.db import transaction
@@ -13,15 +13,12 @@ from ._keyboards import create_inline_btn, link, link_en
 from . import _db as db
 from . import _common as common
 
-env = Env()
-env.read_env()
-
 
 class Command(BaseCommand):
     help = 'Телеграм бот для чатов'
 
     def handle(self, *args, **options):
-        bot = Bot(token=env.str("BOT_TOKEN"))
+        bot = Bot(token=settings.BOT_TOKEN)
         dp = Dispatcher(bot)
 
         async def bot_send_message_user(chat_member, btn1, btn2):
@@ -45,7 +42,7 @@ class Command(BaseCommand):
             """
             return await bot.send_photo(
                 chat_id=chat_member.chat.id,
-                photo=types.InputFile.from_url(f"http://{env.str('IP_DOMAIN')}{image.url}"),
+                photo=types.InputFile.from_url(f"http://{settings.IP_DOMAIN}{image.url}"),
                 caption=f"{common.user_name_en(chat_member)}\n{await db.select_text_en()}",
                 parse_mode='HTML',
                 reply_markup=await create_inline_btn(

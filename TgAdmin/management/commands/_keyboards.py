@@ -1,13 +1,10 @@
-from environs import Env
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.callback_data import CallbackData
+from django.conf import settings
 from telebot import types
 
-env = Env()
-env.read_env()
-
-id_admin = env.str("ID_ADMIN_FOR_2_BOT")
-link_bot = env("TG_SUPPORT_URL")
+id_admin = settings.ID_ADMIN_FOR_2_BOT
+link_bot = settings.TG_SUPPORT_URL
 
 support_callback = CallbackData("ask_support", "user_id", "as_user")
 
