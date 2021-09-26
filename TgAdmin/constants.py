@@ -1,7 +1,4 @@
-from environs import Env
-
-env = Env()
-env.read_env()
+from django.conf import settings
 
 
 class Const:
@@ -19,8 +16,8 @@ class Const:
     ]
 
     LINK = [
-        ('tp', env.str("TG_SUPPORT_URL")),
-        # ('sh', env.str("TG_SHOP_URL")),
+        ('tp', settings.TG_SUPPORT_URL),
+        # ('sh', settings.TG_SHOP_URL),
     ]
 
     LANGUAGE_SUPPORT = [

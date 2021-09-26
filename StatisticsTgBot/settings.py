@@ -197,3 +197,23 @@ os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = 'true'
 #         'handlers': ['console'],
 #     }
 # }
+
+BOT_TOKEN = env.str("BOT_TOKEN")
+BOT_TOKEN2 = env.str("BOT_TOKEN2")
+
+API_HASH = env.str('API_HASH')
+API_ID = env.int('API_ID')
+
+IP_DOMAIN = env.str('IP_DOMAIN')
+
+ID_ADMIN_FOR_2_BOT = env.str("ID_ADMIN_FOR_2_BOT")
+
+TG_SUPPORT_URL = env("TG_SUPPORT_URL")
+TG_SHOP_URL = env.str("TG_SHOP_URL")
+LINK_MAILING_EN_GROUP = env.str("LINK_MAILING_EN_GROUP")
+
+# REDIS
+REDIS_HOST = env.str("REDIS_HOST")
+REDIS_PORT = env.int("REDIS_PORT")
+REDIS_DB = env.int("REDIS_DB")
+REDIS_POOL_SIZE = env.int("REDIS_POOL_SIZE")

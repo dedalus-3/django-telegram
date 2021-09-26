@@ -1,9 +1,9 @@
 import asyncio
 
-from environs import Env
 from aiogram import Bot, Dispatcher, types, executor
 from aiogram.utils.exceptions import RetryAfter
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError
 from django.db import transaction
@@ -13,15 +13,12 @@ from ._keyboards import create_inline_btn, link, link_en
 from . import _db as db
 from . import _common as common
 
-env = Env()
-env.read_env()
-
 
 class Command(BaseCommand):
     help = 'Телеграм бот для чатов'
 
     def handle(self, *args, **options):
-        bot = Bot(token=env.str("BOT_TOKEN"))
+        bot = Bot(token=settings.BOT_TOKEN)
         dp = Dispatcher(bot)
 
         async def bot_send_message_user(chat_member, btn1, btn2):
@@ -45,7 +42,7 @@ class Command(BaseCommand):
             """
             return await bot.send_photo(
                 chat_id=chat_member.chat.id,
-                photo=types.InputFile.from_url(f"http://{env.str('IP_DOMAIN')}{image.url}"),
+                photo=types.InputFile.from_url(f"http://{settings.IP_DOMAIN}{image.url}"),
                 caption=f"{common.user_name_en(chat_member)}\n{await db.select_text_en()}",
                 parse_mode='HTML',
                 reply_markup=await create_inline_btn(
@@ -100,7 +97,9 @@ class Command(BaseCommand):
             Добавление чата в БД
             """
             user = types.User.get_current()
-            if str(user.id) == env.str("ID_ADMIN"):
+            id_admin = await db.get_id_admin()
+
+            if str(user.id) == id_admin:
                 try:
                     await db.create_group(message.chat.id, message.chat.title, message.chat.username)
                     await message.answer(
@@ -126,11 +125,13 @@ class Command(BaseCommand):
             """
             new_status = chat_member.new_chat_member.status
             old_status = chat_member.old_chat_member.status
+            id_admin = await db.get_id_admin()
+
             if old_status == 'left' and new_status == 'member':
                 user_id = chat_member.new_chat_member.user.id
                 user_username = chat_member.new_chat_member.user.username
 
-                if user_id != env.str('ID_ADMIN') and not chat_member.new_chat_member.user.is_bot:
+                if user_id != id_admin and not chat_member.new_chat_member.user.is_bot:
                     chat = await db.select_group(str(chat_member.chat.id))
                     try:
                         full_name = common.fullname(

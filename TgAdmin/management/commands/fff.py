@@ -1,23 +1,20 @@
-from environs import Env
 import time
 import telebot
 from telebot import apihelper
-from TgAdmin.models import Users, Data, Chat
+from TgAdmin.models import Data, Chat
 from TgAdmin.constants import Const
+from django.conf import settings
 from django.db.models import Q
 from django.core.management.base import BaseCommand
 import datetime
 from ._keyboards import telebot_create_inline_btn, telebot_link, telebot_link_en
-
-env = Env()
-env.read_env()
 
 
 class Command(BaseCommand):
     help = 'Телеграм бот'
 
     def handle(self, *args, **options):
-        bot = telebot.TeleBot(token=env.str("BOT_TOKEN"))
+        bot = telebot.TeleBot(token=settings.BOT_TOKEN)
 
         def user_name(user) -> str:
             if user.username:
@@ -75,7 +72,7 @@ class Command(BaseCommand):
                                 #    if chat_url_link_db == e[0]:
                                 #        chat_url_link = e[1]
                                 # keyboard_link = telebot_link_en(chat_url_link)
-                                keyboard_link = telebot_link_en(env.str("LINK_MAILING_EN_GROUP"))
+                                keyboard_link = telebot_link_en(settings.LINK_MAILING_EN_GROUP)
                                 bot.send_message(chat_id=chat.chat_id,
                                                  text=f"{user_name_link_en(i)}\n"
                                                       f"You clicked <b>YES(agreed with our conditions "

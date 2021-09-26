@@ -106,3 +106,8 @@ def delete_user(user_id, chat_id):
         return models.Users.objects.get(iduser=user_id, chat_id=chat).delete()
     except ObjectDoesNotExist:
         pass
+
+
+@sync_to_async
+def get_id_admin():
+    return models.Data.objects.get().id_admin
