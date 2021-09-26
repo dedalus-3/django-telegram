@@ -14,8 +14,8 @@ from django.views.generic.edit import UpdateView, DeleteView
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
+from TgAdmin import forms
 from TgAdmin.models import Users, Data, Chat
-from TgAdmin.forms import TextForm, BtnYes, BtnNo, MailingForm, ChatForm, FaqForm
 from TgAdmin.mixins import ObjectListMixin
 
 env = Env()
@@ -59,7 +59,7 @@ class ChatUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     """
     model = Chat
     template_name = 'TgAdmin/edit_chat.html'
-    form_class = ChatForm
+    form_class = forms.ChatForm
     success_message = 'Данные успешно изменены'
 
 
@@ -152,7 +152,7 @@ class UpdateText(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     """
     model = Data
     template_name = 'TgAdmin/text_create.html'
-    form_class = TextForm
+    form_class = forms.TextForm
     success_message = 'Текст/изображение для приветствия новых пользователей успешно изменен'
 
     def get_object(self, queryset=None):
@@ -168,7 +168,7 @@ class UpdateBtnYes(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     """
     model = Data
     template_name = 'TgAdmin/btn1_create.html'
-    form_class = BtnYes
+    form_class = forms.BtnYes
     success_message = 'Клавиатура "согласен" успешно изменена'
 
     def get_object(self, queryset=None):
@@ -184,7 +184,7 @@ class UpdateBtnNo(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     """
     model = Data
     template_name = 'TgAdmin/btn2_create.html'
-    form_class = BtnNo
+    form_class = forms.BtnNo
     success_message = 'Клавиатура "отклонить" успешно изменена'
 
     def get_object(self, queryset=None):
@@ -200,7 +200,7 @@ class UpdateFaq(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     """
     model = Data
     template_name = 'TgAdmin/edit_faq.html'
-    form_class = FaqForm
+    form_class = forms.FaqForm
     success_message = 'Текст для FAQ успешно изменен'
 
     def get_object(self, queryset=None):
@@ -208,6 +208,22 @@ class UpdateFaq(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
 
     def get_success_url(self):
         return reverse('edit_faq')
+
+
+class UpdateIdAdmin(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    """
+    Обновление IdAdmin для добавления в чаты
+    """
+    model = Data
+    template_name = 'TgAdmin/edit_id_admin.html'
+    form_class = forms.IdAdminForm
+    success_message = 'Id пользователя успешно изменен'
+    
+    def get_object(self, queryset=None):
+        return Data.get_solo()
+
+    def get_success_url(self):
+        return reverse('edit_id_admin')
 
 
 class LoginUserView(LoginView):
@@ -228,7 +244,7 @@ class UpdateMailingView(LoginRequiredMixin, UpdateView):
     """
     model = Data
     template_name = 'TgAdmin/mailing_create.html'
-    form_class = MailingForm
+    form_class = forms.MailingForm
 
     def get_object(self, queryset=None):
         return Data.objects.first()

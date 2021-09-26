@@ -71,3 +71,12 @@ class ChatForm(ModelForm):
             'language': Select(attrs={'class': 'form-control'}),
             'url_chat': TextInput(attrs={'class': 'form-control', 'placeholder': 'https://t.me/test_bot'}),
         }
+
+
+class IdAdminForm(ModelForm):
+    class Meta:
+        model = Data
+        fields = ('id_admin', )
+        widgets = {
+            'id_admin': TextInput(attrs={'class': 'form-control'}),
+        }

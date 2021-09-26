@@ -100,7 +100,9 @@ class Command(BaseCommand):
             Добавление чата в БД
             """
             user = types.User.get_current()
-            if str(user.id) == env.str("ID_ADMIN"):
+            id_admin = await db.get_id_admin()
+
+            if str(user.id) == id_admin:
                 try:
                     await db.create_group(message.chat.id, message.chat.title, message.chat.username)
                     await message.answer(
@@ -126,11 +128,13 @@ class Command(BaseCommand):
             """
             new_status = chat_member.new_chat_member.status
             old_status = chat_member.old_chat_member.status
+            id_admin = await db.get_id_admin()
+
             if old_status == 'left' and new_status == 'member':
                 user_id = chat_member.new_chat_member.user.id
                 user_username = chat_member.new_chat_member.user.username
 
-                if user_id != env.str('ID_ADMIN') and not chat_member.new_chat_member.user.is_bot:
+                if user_id != id_admin and not chat_member.new_chat_member.user.is_bot:
                     chat = await db.select_group(str(chat_member.chat.id))
                     try:
                         full_name = common.fullname(

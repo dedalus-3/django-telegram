@@ -164,6 +164,12 @@ class Data(SingletonModel):
         verbose_name='Текс для рассылки в техподдержке',
         default='Текст для рассылки'
     )
+    id_admin = models.CharField(
+        max_length=100,
+        verbose_name='ID пользователя',
+        help_text='ID пользователя, кто будет добавлять чаты в БД',
+        default='',
+    )
 
     def __str__(self):
         return 'Данные для изменения'

@@ -37,11 +37,7 @@ class Command(BaseCommand):
             for chat in get_chats():
                 try:
                     chat_entry = await client.get_entity(int(chat.get('chat_id')))
-                except struct.error:
-                    continue
-                except ValueError:
-                    continue
-                except PeerIdInvalidError:
+                except (struct.error, ValueError, PeerIdInvalidError):
                     continue
                 else:
                     # Записываем id пользователей в словарь
