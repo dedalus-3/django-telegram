@@ -1,12 +1,15 @@
-import time
-import telebot
-from telebot import apihelper
-from TgAdmin.models import Data, Chat
-from TgAdmin.constants import Const
-from django.conf import settings
-from django.db.models import Q
-from django.core.management.base import BaseCommand
 import datetime
+import time
+
+import telebot
+from django.conf import settings
+from django.core.management.base import BaseCommand
+from django.db.models import Q
+from telebot import apihelper
+
+from TgAdmin.constants import Const
+from TgAdmin.models import Chat, Data
+
 from ._keyboards import telebot_create_inline_btn, telebot_link, telebot_link_en
 
 
@@ -72,16 +75,17 @@ class Command(BaseCommand):
                                 #    if chat_url_link_db == e[0]:
                                 #        chat_url_link = e[1]
                                 # keyboard_link = telebot_link_en(chat_url_link)
-                                keyboard_link = telebot_link_en(settings.LINK_MAILING_EN_GROUP)
+                                keyboard_link = telebot_link_en(
+                                    settings.LINK_MAILING_EN_GROUP)
                                 bot.send_message(chat_id=chat.chat_id,
-                                                 text=f"{user_name_link_en(i)}\n"
-                                                      f"You clicked <b>YES(agreed with our conditions "
-                                                      f"https://t.me/realengaforIG) click the button for making an "
-                                                      f"order</b>",
+                                                 text=f'{user_name_link_en(i)}\n'
+                                                      f'You clicked <b>YES(agreed with our conditions '
+                                                      f'https://t.me/realengaforIG) click the button for making an '
+                                                      f'order</b>',
                                                  reply_markup=keyboard_link, parse_mode='HTML')
                         except apihelper.ApiException as err:
                             time.sleep(int(str(err).split(' ')[-1]))
-                    #elif i.date_joined.date() + datetime.timedelta(days=7) == datetime.datetime.now().date():
+                    # elif i.date_joined.date() + datetime.timedelta(days=7) == datetime.datetime.now().date():
                     #    try:
                     #        bot.kick_chat_member(chat.chat_id, i.iduser)
                     #        user = Users.objects.get(iduser=i.iduser)
@@ -114,10 +118,10 @@ class Command(BaseCommand):
                                         chat_url_link = e[1]
                                 keyboard_link = telebot_link(chat_url_link)
                                 bot.send_message(chat_id=chat.chat_id,
-                                                 text=f"{user_name_link(i)}\n"
-                                                      f"Вы нажали кнопку <b>Да(согласились с условиями "
-                                                      f"https://t.me/joinchat/ZTHjrJWP5bA0ZDE1). Чтобы сделать заказ, "
-                                                      f"нажмите кнопку ниже</b>",
+                                                 text=f'{user_name_link(i)}\n'
+                                                      f'Вы нажали кнопку <b>Да(согласились с условиями '
+                                                      f'{settings.TG_SUPPORT_URL}). Чтобы сделать заказ, '
+                                                      f'нажмите кнопку ниже</b>',
                                                  reply_markup=keyboard_link, parse_mode='HTML')
                         except apihelper.ApiException as err:
                             time.sleep(int(str(err).split(' ')[-1]))

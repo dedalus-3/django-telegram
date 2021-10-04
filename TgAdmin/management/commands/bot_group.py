@@ -1,17 +1,17 @@
 import asyncio
 
-from aiogram import Bot, Dispatcher, types, executor
+from aiogram import Bot, Dispatcher, executor, types
 from aiogram.utils.exceptions import RetryAfter
-
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.db.utils import IntegrityError
 from django.db import transaction
+from django.db.utils import IntegrityError
 
 from TgAdmin.constants import Const
-from ._keyboards import create_inline_btn, link, link_en
-from . import _db as db
+
 from . import _common as common
+from . import _db as db
+from ._keyboards import create_inline_btn, link, link_en
 
 
 class Command(BaseCommand):
@@ -27,7 +27,24 @@ class Command(BaseCommand):
             """
             return await bot.send_message(
                 chat_id=chat_member.chat.id,
-                text=f'{common.user_name_en(chat_member)}\n{await db.select_text_en()}',
+                text=f'{common.user_name_en(chat_member)}'
+                     f'\n{await db.select_text_en()}',
+                parse_mode='HTML',
+                reply_markup=await create_inline_btn(
+                    chat_member.new_chat_member.user.id,
+                    btn1,
+                    btn2,
+                ),
+            )
+
+        async def bot_send_message_user_ru(chat_member, btn1, btn2):
+            """
+            Отправляет сообщение в чат на русском языке
+            """
+            return await bot.send_message(
+                chat_id=chat_member.chat.id,
+                text=f'{common.user_name(chat_member)}'
+                     f'\n{await db.select_text()}',
                 parse_mode='HTML',
                 reply_markup=await create_inline_btn(
                     chat_member.new_chat_member.user.id,
@@ -42,8 +59,26 @@ class Command(BaseCommand):
             """
             return await bot.send_photo(
                 chat_id=chat_member.chat.id,
-                photo=types.InputFile.from_url(f"http://{settings.IP_DOMAIN}{image.url}"),
-                caption=f"{common.user_name_en(chat_member)}\n{await db.select_text_en()}",
+                photo=types.InputFile.from_url(
+                    f'http://{settings.IP_DOMAIN}{image.url}'),
+                caption=f'{common.user_name_en(chat_member)}\n{await db.select_text_en()}',
+                parse_mode='HTML',
+                reply_markup=await create_inline_btn(
+                    chat_member.new_chat_member.user.id,
+                    btn1,
+                    btn2,
+                ),
+            )
+
+        async def bot_send_photo_user_ru(chat_member, btn1, btn2, image):
+            """
+            Отправляет фотографию в чат на русском
+            """
+            return await bot.send_photo(
+                chat_id=chat_member.chat.id,
+                photo=types.InputFile.from_url(
+                    f'http://{settings.IP_DOMAIN}{image.url}'),
+                caption=f'{common.user_name(chat_member)}\n{await db.select_text()}',
                 parse_mode='HTML',
                 reply_markup=await create_inline_btn(
                     chat_member.new_chat_member.user.id,
@@ -67,29 +102,50 @@ class Command(BaseCommand):
                 message_id=msg.message_id
             )
 
-        async def check_image(user_id, chat_id, chat_member, btn1, btn2, image):
+        async def check_image(user_id, chat_id, lng, chat_member, btn1, btn2, image):
             """
             Проверка изображения в админке
             """
             if not image:
-                await bot_send_photo_or_message_user(
-                    bot_send_message_user,
-                    user_id,
-                    chat_id,
-                    chat_member=chat_member,
-                    btn1=btn1,
-                    btn2=btn2,
-                )
+                if lng == 'en':
+                    await bot_send_photo_or_message_user(
+                        bot_send_message_user,
+                        user_id,
+                        chat_id,
+                        chat_member=chat_member,
+                        btn1=btn1,
+                        btn2=btn2,
+                    )
+                else:
+                    await bot_send_photo_or_message_user(
+                        bot_send_message_user_ru,
+                        user_id,
+                        chat_id,
+                        chat_member=chat_member,
+                        btn1=btn1,
+                        btn2=btn2,
+                    )
             else:
-                await bot_send_photo_or_message_user(
-                    bot_send_photo_user,
-                    user_id,
-                    chat_id,
-                    chat_member=chat_member,
-                    btn1=btn1,
-                    btn2=btn2,
-                    image=image,
-                )
+                if lng == 'en':
+                    await bot_send_photo_or_message_user(
+                        bot_send_photo_user,
+                        user_id,
+                        chat_id,
+                        chat_member=chat_member,
+                        btn1=btn1,
+                        btn2=btn2,
+                        image=image,
+                    )
+                else:
+                    await bot_send_photo_or_message_user(
+                        bot_send_photo_user_ru,
+                        user_id,
+                        chat_id,
+                        chat_member=chat_member,
+                        btn1=btn1,
+                        btn2=btn2,
+                        image=image,
+                    )
 
         @dp.message_handler(commands=['add_group'])
         async def test(message: types.Message):
@@ -156,7 +212,8 @@ class Command(BaseCommand):
                                 chat_id=chat.chat_id,
                                 btn1=await db.select_btn1_en(),
                                 btn2=await db.select_btn2_en(),
-                                image=await db.select_image()
+                                image=await db.select_image(),
+                                lng='en',
                             )
                         else:
                             await check_image(
@@ -165,7 +222,8 @@ class Command(BaseCommand):
                                 chat_id=chat.chat_id,
                                 btn1=await db.select_btn1(),
                                 btn2=await db.select_btn2(),
-                                image=await db.select_image()
+                                image=await db.select_image(),
+                                lng='ru',
                             )
                     # Чат не выбран
                     else:
@@ -175,7 +233,8 @@ class Command(BaseCommand):
                             chat_id=chat.chat_id,
                             btn1=await db.select_btn1(),
                             btn2=await db.select_btn2(),
-                            image=await db.select_image()
+                            image=await db.select_image(),
+                            lng='ru',
                         )
 
         @dp.callback_query_handler(lambda c: c.data == f'yes|{c.from_user.id}')
@@ -219,4 +278,5 @@ class Command(BaseCommand):
             await db.delete_user(call.from_user.id, call.message.chat.id)
             await bot.kick_chat_member(chat_id=call.message.chat.id, user_id=call.from_user.id, until_date=31)
 
-        executor.start_polling(dp, skip_updates=True, allowed_updates=types.AllowedUpdates.all())
+        executor.start_polling(dp, skip_updates=True,
+                               allowed_updates=types.AllowedUpdates.all())
